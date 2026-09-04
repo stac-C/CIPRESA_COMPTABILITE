@@ -13,9 +13,10 @@ import AgentCommercialDashboard from "../components/dashboards/AgentCommercialDa
 import MagasinierDashboard from "../components/dashboards/MagasinierDashboard";
 import ConsultantDashboard from "../components/dashboards/ConsultantDashboard";
 import { canAccessTab } from "../components/roles/accessMatrix";
+import ResourceWorkspace from "../components/resources/ResourceWorkspace";
 
 const NAV_ITEMS = [
-  { id: "dashboard", label: "Tableau de bord", icon: "▦" },
+  { id: "dashboard", label: "Tableau de bord", icon: "📊" },
   { id: "clients", label: "Clients", icon: "♧", permission: "CLIENT_READ" },
   { id: "fournisseurs", label: "Fournisseurs", icon: "▤", permission: "ACHAT_READ" },
   { id: "achats", label: "Achats", icon: "◫", permission: "ACHAT_READ" },
@@ -31,13 +32,73 @@ const NAV_ITEMS = [
 ];
 
 const RESOURCE_CONFIG = {
-  clients: { title: "Clients", description: "Consultez les fiches clients et préparez la création, la modification ou la suppression d’un dossier.", table: "clients", columns: ["code", "nom", "email", "telephone", "ville", "statut"] },
-  fournisseurs: { title: "Fournisseurs", description: "Retrouvez les coordonnées et le statut des fournisseurs de l’entreprise.", table: "fournisseurs", columns: ["code", "nom", "email", "telephone", "ville", "actif"] },
+  clients: {
+    title: "Clients",
+    description: "Créez, consultez, modifiez et supprimez les fiches clients autorisées par votre rôle.",
+    table: "clients",
+    nameField: "nom",
+    readPermission: "CLIENT_READ",
+    createPermission: "CLIENT_CREATE",
+    updatePermission: "CLIENT_UPDATE",
+    deletePermission: "CLIENT_DELETE",
+    columns: ["id", "code", "nom", "email", "telephone", "ville", "statut"],
+    fields: [
+      { name: "code", label: "Code client", required: true },
+      { name: "nom", label: "Nom", required: true },
+      { name: "email", label: "Email", type: "email" },
+      { name: "telephone", label: "Téléphone" },
+      { name: "adresse", label: "Adresse" },
+      { name: "ville", label: "Ville" },
+      { name: "pays", label: "Pays", defaultValue: "Cameroun" },
+      { name: "statut", label: "Statut", defaultValue: "ACTIF" },
+      { name: "observation", label: "Observation", type: "textarea" },
+    ],
+  },
+  fournisseurs: {
+    title: "Fournisseurs",
+    description: "Gérez les coordonnées des fournisseurs selon les permissions d’achat du rôle connecté.",
+    table: "fournisseurs",
+    nameField: "nom",
+    readPermission: "ACHAT_READ",
+    createPermission: "ACHAT_CREATE",
+    updatePermission: "ACHAT_UPDATE",
+    deletePermission: "ACHAT_UPDATE",
+    columns: ["id", "code", "nom", "email", "telephone", "ville", "actif"],
+    fields: [
+      { name: "code", label: "Code fournisseur", required: true },
+      { name: "nom", label: "Nom", required: true },
+      { name: "email", label: "Email", type: "email" },
+      { name: "telephone", label: "Téléphone" },
+      { name: "adresse", label: "Adresse" },
+      { name: "ville", label: "Ville" },
+      { name: "pays", label: "Pays" },
+      { name: "actif", label: "Actif", type: "checkbox", defaultValue: true },
+    ],
+  },
+  inventaire: {
+    title: "Inventaire",
+    description: "Gérez le catalogue des produits et leurs prix; les mouvements de stock restent soumis à STOCK_CREATE.",
+    table: "produits",
+    nameField: "nom",
+    readPermission: "STOCK_READ",
+    createPermission: "STOCK_CREATE",
+    updatePermission: "STOCK_UPDATE",
+    deletePermission: "STOCK_UPDATE",
+    columns: ["id", "reference", "nom", "unite", "prix_achat", "prix_vente", "actif"],
+    fields: [
+      { name: "reference", label: "Référence", required: true },
+      { name: "nom", label: "Nom du produit", required: true },
+      { name: "description", label: "Description", type: "textarea" },
+      { name: "unite", label: "Unité", defaultValue: "UNITE", required: true },
+      { name: "prix_achat", label: "Prix d’achat", type: "number", min: "0", step: "0.01", defaultValue: "0" },
+      { name: "prix_vente", label: "Prix de vente", type: "number", min: "0", step: "0.01", defaultValue: "0" },
+      { name: "actif", label: "Actif", type: "checkbox", defaultValue: true },
+    ],
+  },
   achats: { title: "Achats", description: "Suivez les achats enregistrés, leurs montants et leur état de traitement.", table: "achats", permission: "ACHAT_READ", columns: ["numero", "fournisseur_id", "date_achat", "total", "statut"] },
   projets: { title: "Projets", description: "Suivez les projets, leur budget, leur calendrier et leur état d’avancement.", table: "projets", columns: ["reference", "nom", "ville", "budget", "statut", "date_debut"] },
   ventes: { title: "Ventes", description: "Consultez les ventes et préparez les opérations commerciales avant leur facturation.", table: "ventes", permission: "VENTE_READ", columns: ["numero", "client_id", "date_vente", "total", "statut"] },
   facturation: { title: "Facturation", description: "Consultez les factures clients, les échéances et les montants restant à payer.", table: "factures", columns: ["numero", "date_facture", "montant_ttc", "reste_a_payer", "statut"] },
-  inventaire: { title: "Inventaire", description: "Consultez le catalogue des produits, les prix et l’état des références en stock.", table: "produits", columns: ["reference", "nom", "unite", "prix_vente", "actif"] },
   comptabilite: { title: "Comptabilité", description: "Saisissez, contrôlez et validez les écritures comptables de l’entreprise.", table: "ecritures_comptables", permission: "COMPTA_READ", columns: ["numero", "date_ecriture", "libelle", "statut"] },
   bilans: { title: "Bilans", description: "Générez et consultez les bilans par exercice comptable.", table: "bilans", permission: "BILAN_READ", columns: ["exercice_id", "date_generation", "total_actif", "total_passif", "resultat", "statut"] },
   rapports: { title: "Rapports financiers", description: "Créez et consultez les rapports financiers sur une période définie.", table: "rapports_financiers", permission: "RAPPORT_READ", columns: ["reference", "nom", "date_debut", "date_fin", "solde_final", "statut"] },
@@ -279,6 +340,7 @@ export default function Dashboard() {
     const currentNavItem = NAV_ITEMS.find((item) => item.id === activeTab);
     const hasTabAccess = currentNavItem && canAccessTab(activeTab, { can, hasRole }) && (!resource?.permission || can(resource.permission));
     if (resource && hasTabAccess) {
+      if (resource.fields) return <ResourceWorkspace resource={resource} can={can} />;
       return <ResourceView resource={resource} onReload={activeTab} can={can} />;
     }
     return <section className="content-panel"><p className="empty">Cette rubrique n’est pas disponible pour votre rôle.</p></section>;
