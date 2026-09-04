@@ -1,6 +1,8 @@
 import React from "react";
 
-export default function RoleDashboardBase({ role, summary, actions, onNavigate }) {
+export default function RoleDashboardBase({ role, summary, actions, onNavigate, can }) {
+  const visibleActions = actions.filter((action) => !action.permission || can(action.permission));
+
   return (
     <div className="role-dashboard">
       <section className="role-hero">
@@ -23,7 +25,7 @@ export default function RoleDashboardBase({ role, summary, actions, onNavigate }
       <section className="content-panel role-actions-panel">
         <div className="section-heading"><div><p className="section-kicker">Accès rapides</p><h2>Vos modules</h2></div></div>
         <div className="quick-actions">
-          {actions.map((action) => (
+          {visibleActions.map((action) => (
             <button className="quick-action" type="button" key={action.id} onClick={() => onNavigate(action.id)}>
               <span>{action.icon}</span><strong>{action.label}</strong><small>{action.description}</small>
             </button>

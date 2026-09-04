@@ -12,6 +12,7 @@ import ComptableDashboard from "../components/dashboards/ComptableDashboard";
 import AgentCommercialDashboard from "../components/dashboards/AgentCommercialDashboard";
 import MagasinierDashboard from "../components/dashboards/MagasinierDashboard";
 import ConsultantDashboard from "../components/dashboards/ConsultantDashboard";
+import { canAccessTab } from "../components/roles/accessMatrix";
 
 const NAV_ITEMS = [
   { id: "dashboard", label: "Tableau de bord", icon: "▦" },
@@ -22,11 +23,11 @@ const NAV_ITEMS = [
   { id: "ventes", label: "Ventes", icon: "◈", permission: "VENTE_READ" },
   { id: "facturation", label: "Facturation", icon: "▣", permission: "VENTE_READ" },
   { id: "inventaire", label: "Inventaire", icon: "▱", permission: "STOCK_READ" },
-  { id: "comptabilite", label: "Comptabilité", icon: "▥", permission: "COMPTA_READ" },
-  { id: "bilans", label: "Bilans", icon: "▤", permission: "BILAN_READ" },
-  { id: "rapports", label: "Rapports", icon: "▥", permission: "RAPPORT_READ" },
-  { id: "configuration", label: "Configuration", icon: "⚙", roles: ["ADMIN"] },
-  { id: "profile", label: "Mon profil", icon: "◉" },
+  { id: "comptabilite", label: "Comptabilité", icon: "🪨", permission: "COMPTA_READ" },
+  { id: "bilans", label: "Bilans", icon: "📖", permission: "BILAN_READ" },
+  { id: "rapports", label: "Rapports", icon: "🛄", permission: "RAPPORT_READ" },
+  { id: "configuration", label: "Configuration", icon: "🏡", roles: ["ADMIN"] },
+  { id: "profile", label: "Mon profil", icon: "⚙️" },
 ];
 
 const RESOURCE_CONFIG = {
@@ -65,13 +66,14 @@ function titleForColumn(column) {
   return column.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function RoleDashboard({ roles, onNavigate }) {
-  if (roles.some(({ code }) => code === "ADMIN")) return <AdminDashboard onNavigate={onNavigate} />;
-  if (roles.some(({ code }) => code === "GERANT")) return <GerantDashboard onNavigate={onNavigate} />;
-  if (roles.some(({ code }) => code === "COMPTABLE")) return <ComptableDashboard onNavigate={onNavigate} />;
-  if (roles.some(({ code }) => code === "AGENT_COMMERCIAL")) return <AgentCommercialDashboard onNavigate={onNavigate} />;
-  if (roles.some(({ code }) => code === "MAGASINIER")) return <MagasinierDashboard onNavigate={onNavigate} />;
-  return <ConsultantDashboard onNavigate={onNavigate} />;
+function RoleDashboard({ roles, onNavigate, can }) {
+  const hasRole = (role) => roles.some(({ code }) => code === role);
+  if (hasRole("ADMIN")) return <AdminDashboard onNavigate={onNavigate} can={can} />;
+  if (hasRole("GERANT")) return <GerantDashboard onNavigate={onNavigate} can={can} />;
+  if (hasRole("COMPTABLE")) return <ComptableDashboard onNavigate={onNavigate} can={can} />;
+  if (hasRole("AGENT_COMMERCIAL")) return <AgentCommercialDashboard onNavigate={onNavigate} can={can} />;
+  if (hasRole("MAGASINIER")) return <MagasinierDashboard onNavigate={onNavigate} can={can} />;
+  return <ConsultantDashboard onNavigate={onNavigate} can={can} />;
 }
 
 function getTabFromPath() {
@@ -245,10 +247,7 @@ export default function Dashboard() {
     };
   }, [hasRole]);
 
-  const visibleNav = NAV_ITEMS.filter((item) => (
-    (!item.permission || can(item.permission) || hasRole("ADMIN"))
-    && (!item.roles || item.roles.some((role) => hasRole(role)))
-  ));
+  const visibleNav = NAV_ITEMS.filter((item) => item.id === "dashboard" || canAccessTab(item.id, { can, hasRole }));
 
   useEffect(() => {
     function syncTab() {
@@ -272,13 +271,13 @@ export default function Dashboard() {
   }
 
   function renderContent() {
-    if (activeTab === "dashboard") return <><RoleDashboard roles={roles} onNavigate={navigateToTab} /><DashboardOverview loading={loading} error={error} stats={stats} factures={factures} isAccountingUser={hasRole("COMPTABLE") && !hasRole("ADMIN") && !hasRole("GERANT")} /></>;
+    if (activeTab === "dashboard") return <><RoleDashboard roles={roles} onNavigate={navigateToTab} can={can} /><DashboardOverview loading={loading} error={error} stats={stats} factures={factures} isAccountingUser={hasRole("COMPTABLE") && !hasRole("ADMIN") && !hasRole("GERANT")} /></>;
     if (activeTab === "profile") return <PersonalSettings profile={profile} roles={roles} />;
     if (activeTab === "configuration" && hasRole("ADMIN")) return <><AdminControlCenter can={can} onNavigate={navigateToTab} /><AdminAccessView roles={roles} rolePermissions={rolePermissions} /></>;
     if (["comptabilite", "bilans", "rapports"].includes(activeTab)) return <ComptabiliteWorkspace section={activeTab} session={{ user: { id: profile?.id } }} can={can} />;
     const resource = RESOURCE_CONFIG[activeTab];
     const currentNavItem = NAV_ITEMS.find((item) => item.id === activeTab);
-    const hasTabAccess = currentNavItem && (!currentNavItem.roles || currentNavItem.roles.some((role) => hasRole(role))) && (!resource?.permission || can(resource.permission));
+    const hasTabAccess = currentNavItem && canAccessTab(activeTab, { can, hasRole }) && (!resource?.permission || can(resource.permission));
     if (resource && hasTabAccess) {
       return <ResourceView resource={resource} onReload={activeTab} can={can} />;
     }
