@@ -14,6 +14,9 @@ import MagasinierDashboard from "../components/dashboards/MagasinierDashboard";
 import ConsultantDashboard from "../components/dashboards/ConsultantDashboard";
 import { canAccessTab } from "../components/roles/accessMatrix";
 import ResourceWorkspace from "../components/resources/ResourceWorkspace";
+import { useDashboardData } from "../hooks/useDashboardData";
+import DashboardCharts from "../components/DashboardCharts";
+import FacturesDataTable from "../components/FacturesDataTable";
 
 const NAV_ITEMS = [
   { id: "dashboard", label: "Tableau de bord", icon: "📊" },
@@ -95,10 +98,14 @@ const RESOURCE_CONFIG = {
       { name: "actif", label: "Actif", type: "checkbox", defaultValue: true },
     ],
   },
-  achats: { title: "Achats", description: "Suivez les achats enregistrés, leurs montants et leur état de traitement.", table: "achats", permission: "ACHAT_READ", columns: ["numero", "fournisseur_id", "date_achat", "total", "statut"] },
-  projets: { title: "Projets", description: "Suivez les projets, leur budget, leur calendrier et leur état d’avancement.", table: "projets", columns: ["reference", "nom", "ville", "budget", "statut", "date_debut"] },
-  ventes: { title: "Ventes", description: "Consultez les ventes et préparez les opérations commerciales avant leur facturation.", table: "ventes", permission: "VENTE_READ", columns: ["numero", "client_id", "date_vente", "total", "statut"] },
-  facturation: { title: "Facturation", description: "Consultez les factures clients, les échéances et les montants restant à payer.", table: "factures", columns: ["numero", "date_facture", "montant_ttc", "reste_a_payer", "statut"] },
+  achats: {
+    title: "Achats", description: "Créez et suivez les achats fournisseurs autorisés.", table: "achats", nameField: "numero", readPermission: "ACHAT_READ", createPermission: "ACHAT_CREATE", updatePermission: "ACHAT_UPDATE", deletePermission: "ACHAT_UPDATE", columns: ["id", "numero", "fournisseur_id", "date_achat", "total", "statut"], fields: [{ name: "numero", label: "Numéro", required: true }, { name: "fournisseur_id", label: "Identifiant fournisseur", required: true }, { name: "date_achat", label: "Date", type: "date", required: true }, { name: "sous_total", label: "Sous-total", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "taxe", label: "Taxe", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "total", label: "Total", type: "number", min: "0", step: "0.01", defaultValue: "0" }] },
+  projets: {
+    title: "Projets", description: "Créez et suivez les projets, leur budget et leur avancement.", table: "projets", nameField: "nom", readPermission: "CLIENT_READ", createPermission: "CLIENT_CREATE", updatePermission: "CLIENT_UPDATE", deletePermission: "CLIENT_DELETE", columns: ["id", "reference", "nom", "client_id", "ville", "budget", "statut", "date_debut"], fields: [{ name: "reference", label: "Référence", required: true }, { name: "nom", label: "Nom", required: true }, { name: "client_id", label: "Identifiant client" }, { name: "ville", label: "Ville" }, { name: "budget", label: "Budget", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "date_debut", label: "Date de début", type: "date" }, { name: "date_fin_prevue", label: "Date de fin prévue", type: "date" }] },
+  ventes: {
+    title: "Ventes", description: "Créez et suivez les ventes avant leur facturation.", table: "ventes", nameField: "numero", readPermission: "VENTE_READ", createPermission: "VENTE_CREATE", updatePermission: "VENTE_UPDATE", deletePermission: "VENTE_DELETE", columns: ["id", "numero", "client_id", "date_vente", "total", "statut"], fields: [{ name: "numero", label: "Numéro", required: true }, { name: "client_id", label: "Identifiant client", required: true }, { name: "date_vente", label: "Date", type: "date", required: true }, { name: "sous_total", label: "Sous-total", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "remise", label: "Remise", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "taxe", label: "Taxe", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "total", label: "Total", type: "number", min: "0", step: "0.01", defaultValue: "0" }] },
+  facturation: {
+    title: "Facturation", description: "Créez et suivez les factures clients et leurs échéances.", table: "factures", nameField: "numero", readPermission: "VENTE_READ", createPermission: "VENTE_CREATE", updatePermission: "VENTE_UPDATE", deletePermission: "VENTE_DELETE", columns: ["id", "numero", "vente_id", "client_id", "date_facture", "date_echeance", "montant_ttc", "montant_paye", "reste_a_payer", "statut"], fields: [{ name: "numero", label: "Numéro", required: true }, { name: "vente_id", label: "Identifiant vente", required: true }, { name: "client_id", label: "Identifiant client", required: true }, { name: "date_facture", label: "Date", type: "date", required: true }, { name: "date_echeance", label: "Échéance", type: "date" }, { name: "montant_ht", label: "Montant HT", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "taxe", label: "Taxe", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "montant_ttc", label: "Montant TTC", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "montant_paye", label: "Montant payé", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "reste_a_payer", label: "Reste à payer", type: "number", min: "0", step: "0.01", defaultValue: "0" }] },
   comptabilite: { title: "Comptabilité", description: "Saisissez, contrôlez et validez les écritures comptables de l’entreprise.", table: "ecritures_comptables", permission: "COMPTA_READ", columns: ["numero", "date_ecriture", "libelle", "statut"] },
   bilans: { title: "Bilans", description: "Générez et consultez les bilans par exercice comptable.", table: "bilans", permission: "BILAN_READ", columns: ["exercice_id", "date_generation", "total_actif", "total_passif", "resultat", "statut"] },
   rapports: { title: "Rapports financiers", description: "Créez et consultez les rapports financiers sur une période définie.", table: "rapports_financiers", permission: "RAPPORT_READ", columns: ["reference", "nom", "date_debut", "date_fin", "solde_final", "statut"] },
@@ -193,11 +200,12 @@ function ResourceView({ resource, onReload, can }) {
   );
 }
 
-function AdminAccessView({ roles, rolePermissions }) {
+function AdminAccessView({ roles, rolePermissions, can }) {
   const [users, setUsers] = useState([]);
   const [userRoles, setUserRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [savingUser, setSavingUser] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -218,13 +226,22 @@ function AdminAccessView({ roles, rolePermissions }) {
 
   const rolesForUser = (userId) => userRoles.filter((item) => item.user_id === userId).map((item) => item.role?.nom).filter(Boolean).join(", ") || "Aucun rôle";
 
+  async function toggleUser(user) {
+    if (!can("USER_MANAGE")) return;
+    setSavingUser(user.id);
+    const { error: updateError } = await supabase.from("profiles").update({ actif: !user.actif }).eq("id", user.id);
+    setSavingUser(null);
+    if (updateError) setError(updateError.message);
+    else setUsers((current) => current.map((item) => item.id === user.id ? { ...item, actif: !user.actif } : item));
+  }
+
   return (
     <div className="admin-grid">
       <section className="content-panel admin-users-panel">
         <div className="section-heading"><div><p className="section-kicker">Administration · USER_READ / USER_MANAGE</p><h2>Utilisateurs & rôles</h2><p className="panel-description">Consultez les comptes, leurs rôles et leur statut d’activité. Les changements de rôle restent soumis aux règles de sécurité Supabase.</p></div><span className="record-count">{users.length} profil{users.length > 1 ? "s" : ""}</span></div>
         <div className="policy-note"><strong>Lecture sécurisée</strong><span>Les profils et rôles affichés proviennent de Supabase. L’attribution reste contrôlée par les policies RLS existantes.</span></div>
         {error && <p className="message error">Erreur de lecture : {error}</p>}
-        {loading ? <p className="empty">Chargement…</p> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Utilisateur</th><th>Contact</th><th>Rôle</th><th>Statut</th></tr></thead><tbody>{users.map((user) => <tr key={user.id}><td><strong>{`${user.prenom || ""} ${user.nom || ""}`.trim() || "Profil sans nom"}</strong><small>{user.id}</small></td><td>{displayValue(user.telephone)}</td><td><span className="role-badge">{rolesForUser(user.id)}</span></td><td><span className={`status-dot ${user.actif ? "is-active" : "is-inactive"}`}>{user.actif ? "Actif" : "Inactif"}</span></td></tr>)}</tbody></table></div>}
+        {loading ? <p className="empty">Chargement…</p> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Utilisateur</th><th>Contact</th><th>Rôle</th><th>Statut</th>{can("USER_MANAGE") && <th>Opération</th>}</tr></thead><tbody>{users.map((user) => <tr key={user.id}><td><strong>{`${user.prenom || ""} ${user.nom || ""}`.trim() || "Profil sans nom"}</strong><small>{user.id}</small></td><td>{displayValue(user.telephone)}</td><td><span className="role-badge">{rolesForUser(user.id)}</span></td><td><span className={`status-dot ${user.actif ? "is-active" : "is-inactive"}`}>{user.actif ? "Actif" : "Inactif"}</span></td>{can("USER_MANAGE") && <td><button className="link-button" type="button" disabled={savingUser === user.id} onClick={() => toggleUser(user)}>{user.actif ? "Désactiver" : "Activer"}</button></td>}</tr>)}</tbody></table></div>}
       </section>
       <section className="content-panel permissions-panel"><div className="section-heading"><div><p className="section-kicker">Référentiel Supabase</p><h2>Privilèges par rôle</h2></div></div><div className="role-list">{[...roles].sort((a, b) => ROLE_ORDER.indexOf(a.code) - ROLE_ORDER.indexOf(b.code)).map((role) => <article className="role-card" key={role.id}><div><span className="role-code">{role.code}</span><h3>{role.nom}</h3><p>{role.description || "Aucune description"}</p></div><div className="permission-list">{(rolePermissions[role.id] || []).length ? rolePermissions[role.id].map((permission) => <span key={permission.code} title={permission.description}>{permission.nom}</span>) : <span className="muted">Aucun privilège enregistré dans la base.</span>}</div></article>)}</div></section>
     </div>
@@ -234,79 +251,11 @@ function AdminAccessView({ roles, rolePermissions }) {
 export default function Dashboard() {
   const { profile, roles, permissions, rolePermissions, hasRole, can, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState(getTabFromPath);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [stats, setStats] = useState({ clients: 0, factures: 0, resteAPayer: 0, comptes: 0, ecritures: 0, bilans: 0, rapports: 0 });
-  const [factures, setFactures] = useState([]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadData() {
-      setLoading(true);
-      setError(null);
-
-      const isAccountingUser = hasRole("COMPTABLE") && !hasRole("ADMIN") && !hasRole("GERANT");
-      const results = isAccountingUser
-        ? await Promise.all([
-            supabase.from("ecritures_comptables").select("*", { count: "exact", head: true }),
-            supabase.from("bilans").select("*", { count: "exact", head: true }),
-            supabase.from("rapports_financiers").select("*", { count: "exact", head: true }),
-          ])
-        : await Promise.all([
-            supabase.from("clients").select("*", { count: "exact", head: true }),
-            supabase.from("factures").select("*", { count: "exact", head: true }),
-            supabase.from("factures").select("id, numero, date_facture, montant_ttc, reste_a_payer, statut").order("date_facture", { ascending: false }).limit(10),
-            supabase.from("comptes").select("*", { count: "exact", head: true }),
-          ]);
-
-      if (isAccountingUser) {
-        const [entriesResult, balancesResult, reportsResult] = results;
-        const accountingError = entriesResult.error || balancesResult.error || reportsResult.error;
-        if (accountingError) {
-          if (isMounted) setError(accountingError.message);
-        } else if (isMounted) {
-          setStats({ clients: 0, factures: 0, resteAPayer: 0, comptes: 0, ecritures: entriesResult.count ?? 0, bilans: balancesResult.count ?? 0, rapports: reportsResult.count ?? 0 });
-          setFactures([]);
-        }
-        if (isMounted) setLoading(false);
-        return;
-      }
-
-      const [
-        { count: clientsCount, error: clientsErr },
-        { count: facturesCount, error: facturesCountErr },
-        { data: facturesData, error: facturesErr },
-        { count: comptesCount, error: comptesErr },
-      ] = results;
-
-      const firstError = clientsErr || facturesCountErr || facturesErr || comptesErr;
-      if (firstError) {
-        if (isMounted) setError(firstError.message);
-      } else if (isMounted) {
-        const resteAPayer = (facturesData || []).reduce(
-          (sum, f) => sum + Number(f.reste_a_payer || 0),
-          0
-        );
-        setStats({
-          clients: clientsCount ?? 0,
-          factures: facturesCount ?? 0,
-          resteAPayer,
-          comptes: comptesCount ?? 0,
-          ecritures: 0,
-          bilans: 0,
-          rapports: 0,
-        });
-        setFactures(facturesData || []);
-      }
-      if (isMounted) setLoading(false);
-    }
-
-    loadData();
-    return () => {
-      isMounted = false;
-    };
-  }, [hasRole]);
+  const isAccountingUser = hasRole("COMPTABLE") && !hasRole("ADMIN") && !hasRole("GERANT");
+  const { data: dashboardData, isLoading: loading, error: queryError } = useDashboardData(isAccountingUser);
+  const stats = dashboardData?.stats || { clients: 0, factures: 0, resteAPayer: 0, comptes: 0, ecritures: 0, bilans: 0, rapports: 0 };
+  const factures = dashboardData?.factures || [];
+  const error = queryError?.message || null;
 
   const visibleNav = NAV_ITEMS.filter((item) => item.id === "dashboard" || canAccessTab(item.id, { can, hasRole }));
 
@@ -332,9 +281,9 @@ export default function Dashboard() {
   }
 
   function renderContent() {
-    if (activeTab === "dashboard") return <><RoleDashboard roles={roles} onNavigate={navigateToTab} can={can} /><DashboardOverview loading={loading} error={error} stats={stats} factures={factures} isAccountingUser={hasRole("COMPTABLE") && !hasRole("ADMIN") && !hasRole("GERANT")} /></>;
+    if (activeTab === "dashboard") return <><RoleDashboard roles={roles} onNavigate={navigateToTab} can={can} /><DashboardOverview loading={loading} error={error} stats={stats} factures={factures} isAccountingUser={isAccountingUser} /></>;
     if (activeTab === "profile") return <PersonalSettings profile={profile} roles={roles} />;
-    if (activeTab === "configuration" && hasRole("ADMIN")) return <><AdminControlCenter can={can} onNavigate={navigateToTab} /><AdminAccessView roles={roles} rolePermissions={rolePermissions} /></>;
+    if (activeTab === "configuration" && hasRole("ADMIN")) return <><AdminControlCenter can={can} onNavigate={navigateToTab} /><AdminAccessView roles={roles} rolePermissions={rolePermissions} can={can} /></>;
     if (["comptabilite", "bilans", "rapports"].includes(activeTab)) return <ComptabiliteWorkspace section={activeTab} session={{ user: { id: profile?.id } }} can={can} />;
     const resource = RESOURCE_CONFIG[activeTab];
     const currentNavItem = NAV_ITEMS.find((item) => item.id === activeTab);
@@ -355,5 +304,5 @@ export default function Dashboard() {
 }
 
 function DashboardOverview({ loading, error, stats, factures }) {
-  return <>{error && <p className="message error">Erreur de chargement : {error}</p>}{loading ? <p className="empty">Chargement des données…</p> : <><section className="stats-grid"><StatCard label="Clients actifs" value={stats.clients.toLocaleString("fr-FR")} hint="Base clients Supabase" /><StatCard label="Factures totales" value={stats.factures.toLocaleString("fr-FR")} hint="Données factures" /><StatCard label="Créances clients" value={`${stats.resteAPayer.toLocaleString("fr-FR")} XAF`} hint="10 dernières factures" /><StatCard label="Comptes trésorerie" value={stats.comptes.toLocaleString("fr-FR")} hint="Comptes actifs" /></section><div className="overview-grid"><section className="content-panel chart-panel"><div className="section-heading"><div><p className="section-kicker">Activité</p><h2>Tendances des revenus</h2></div><button className="more-button">⋮</button></div><div className="fake-chart"><div className="chart-grid"><span /><span /><span /><span /></div><div className="bars">{[35, 49, 40, 61, 56, 82].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}</div><strong className="chart-label">84K XAF</strong></div></section><section className="content-panel transactions-panel"><div className="section-heading"><h2>Transactions récentes</h2><button className="link-button">Voir tout</button></div><FacturesTable factures={factures.slice(0, 5)} /></section></div></>}</>;
+  return <>{error && <p className="message error">Erreur de chargement : {error}</p>}{loading ? <p className="empty">Chargement des données…</p> : <><section className="stats-grid"><StatCard label="Clients actifs" value={stats.clients.toLocaleString("fr-FR")} hint="Base clients Supabase" /><StatCard label="Factures totales" value={stats.factures.toLocaleString("fr-FR")} hint="Données factures" /><StatCard label="Créances clients" value={`${stats.resteAPayer.toLocaleString("fr-FR")} XAF`} hint="Factures récentes" /><StatCard label="Comptes trésorerie" value={stats.comptes.toLocaleString("fr-FR")} hint="Comptes actifs" /></section><DashboardCharts invoices={factures} /><FacturesDataTable factures={factures} /></>}</>;
 }
