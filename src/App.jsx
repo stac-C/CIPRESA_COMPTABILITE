@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const queryClient = new QueryClient();
 import "./index.css";
+import "./components/PageStyles.css";
 
 function Gate() {
   const { session, profile, roles, accessError, accessLoading, loading, signOut } = useAuth();
