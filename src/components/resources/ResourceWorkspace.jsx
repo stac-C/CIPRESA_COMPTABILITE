@@ -16,8 +16,9 @@ function emptyForm(fields) {
 }
 
 function generatedNumber(prefix) {
-  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
-  return `${prefix}-${stamp}`;
+  const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
+  const randomPart = globalThis.crypto?.randomUUID?.().slice(0, 8).toUpperCase() || Math.random().toString(36).slice(2, 10).toUpperCase();
+  return `${prefix}-${date}-${randomPart}`;
 }
 
 export default function ResourceWorkspace({ resource, can }) {
@@ -57,7 +58,18 @@ export default function ResourceWorkspace({ resource, can }) {
 
   function updateField(event) {
     const { name, value, type, checked } = event.target;
-    setForm((current) => ({ ...current, [name]: type === "checkbox" ? checked : value }));
+    const nextValue = type === "checkbox" ? checked : value;
+    const field = resource.fields.find((item) => item.name === name);
+    setForm((current) => {
+      const nextForm = { ...current, [name]: nextValue };
+      if (field?.relation?.syncFields) {
+        const selected = (relationOptions[name] || []).find((option) => option[field.relation.value] === value);
+        field.relation.syncFields.forEach(({ target, source }) => {
+          nextForm[target] = selected?.[source] || "";
+        });
+      }
+      return nextForm;
+    });
   }
 
   function startEdit(row) {
@@ -114,7 +126,7 @@ export default function ResourceWorkspace({ resource, can }) {
             {resource.fields.map((field) => (
               <label className="accounting-field" key={field.name}>
                 <span>{field.label}</span>
-                {field.relation ? <select name={field.name} value={form[field.name]} onChange={updateField} required={field.required}><option value="">Choisir</option>{(relationOptions[field.name] || []).map((option) => <option value={option[field.relation.value]} key={option[field.relation.value]}>{option[field.relation.label]}</option>)}</select> : field.type === "textarea" ? <textarea name={field.name} value={form[field.name]} onChange={updateField} required={field.required} /> : <input type={field.type || "text"} name={field.name} value={field.type === "checkbox" ? undefined : form[field.name]} checked={field.type === "checkbox" ? Boolean(form[field.name]) : undefined} onChange={updateField} required={field.required} min={field.min} step={field.step} />}
+                {field.relation ? <select name={field.name} value={form[field.name]} onChange={updateField} required={field.required} disabled={field.relation.disabled}><option value="">Choisir</option>{(relationOptions[field.name] || []).map((option) => <option value={option[field.relation.value]} key={option[field.relation.value]}>{option[field.relation.label]}</option>)}</select> : field.type === "textarea" ? <textarea name={field.name} value={form[field.name]} onChange={updateField} required={field.required} /> : <input type={field.type || "text"} name={field.name} value={field.type === "checkbox" ? undefined : form[field.name]} checked={field.type === "checkbox" ? Boolean(form[field.name]) : undefined} onChange={updateField} required={field.required} min={field.min} step={field.step} readOnly={field.generated} />}
               </label>
             ))}
             <div className="form-actions"><button className="primary-button" type="submit" disabled={saving}>{saving ? "Enregistrement..." : editingId ? "Enregistrer les modifications" : "Créer"}</button>{editingId && <button className="btn-secondary" type="button" onClick={cancelEdit}>Annuler</button>}</div>
