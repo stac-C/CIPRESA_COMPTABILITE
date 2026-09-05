@@ -99,13 +99,13 @@ const RESOURCE_CONFIG = {
     ],
   },
   achats: {
-    title: "Achats", description: "Créez et suivez les achats fournisseurs autorisés.", table: "achats", nameField: "numero", readPermission: "ACHAT_READ", createPermission: "ACHAT_CREATE", updatePermission: "ACHAT_UPDATE", deletePermission: "ACHAT_UPDATE", columns: ["id", "numero", "fournisseur_id", "date_achat", "total", "statut"], fields: [{ name: "numero", label: "Numéro", required: true }, { name: "fournisseur_id", label: "Identifiant fournisseur", required: true }, { name: "date_achat", label: "Date", type: "date", required: true }, { name: "sous_total", label: "Sous-total", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "taxe", label: "Taxe", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "total", label: "Total", type: "number", min: "0", step: "0.01", defaultValue: "0" }] },
+    title: "Achats", description: "Créez et suivez les achats fournisseurs autorisés.", table: "achats", nameField: "numero", readPermission: "ACHAT_READ", createPermission: "ACHAT_CREATE", updatePermission: "ACHAT_UPDATE", deletePermission: "ACHAT_UPDATE", generatedNumber: { field: "numero", prefix: "ACH" }, columns: ["id", "numero", "fournisseur_id", "date_achat", "total", "statut"], fields: [{ name: "fournisseur_id", label: "Fournisseur", required: true, relation: { table: "fournisseurs", columns: ["id", "code", "nom"], value: "id", label: "nom" } }, { name: "date_achat", label: "Date", type: "date", required: true }, { name: "sous_total", label: "Sous-total", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "taxe", label: "Taxe", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "total", label: "Total", type: "number", min: "0", step: "0.01", defaultValue: "0" }] },
   projets: {
-    title: "Projets", description: "Créez et suivez les projets, leur budget et leur avancement.", table: "projets", nameField: "nom", readPermission: "CLIENT_READ", createPermission: "CLIENT_CREATE", updatePermission: "CLIENT_UPDATE", deletePermission: "CLIENT_DELETE", columns: ["id", "reference", "nom", "client_id", "ville", "budget", "statut", "date_debut"], fields: [{ name: "reference", label: "Référence", required: true }, { name: "nom", label: "Nom", required: true }, { name: "client_id", label: "Identifiant client" }, { name: "ville", label: "Ville" }, { name: "budget", label: "Budget", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "date_debut", label: "Date de début", type: "date" }, { name: "date_fin_prevue", label: "Date de fin prévue", type: "date" }] },
+    title: "Projets", description: "Créez et suivez les projets, leur budget et leur avancement.", table: "projets", nameField: "nom", readPermission: "CLIENT_READ", createPermission: "CLIENT_CREATE", updatePermission: "CLIENT_UPDATE", deletePermission: "CLIENT_DELETE", columns: ["id", "reference", "nom", "client_id", "ville", "budget", "statut", "date_debut"], derivedColumns: [{ name: "actif", label: "Actif", getValue: (row) => row.statut !== "TERMINE" && row.statut !== "SUSPENDU" }], fields: [{ name: "reference", label: "Référence", required: true }, { name: "nom", label: "Nom", required: true }, { name: "client_id", label: "Identifiant client" }, { name: "ville", label: "Ville" }, { name: "budget", label: "Budget", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "date_debut", label: "Date de début", type: "date" }, { name: "date_fin_prevue", label: "Date de fin prévue", type: "date" }] },
   ventes: {
     title: "Ventes", description: "Créez et suivez les ventes avant leur facturation.", table: "ventes", nameField: "numero", readPermission: "VENTE_READ", createPermission: "VENTE_CREATE", updatePermission: "VENTE_UPDATE", deletePermission: "VENTE_DELETE", columns: ["id", "numero", "client_id", "date_vente", "total", "statut"], fields: [{ name: "numero", label: "Numéro", required: true }, { name: "client_id", label: "Identifiant client", required: true }, { name: "date_vente", label: "Date", type: "date", required: true }, { name: "sous_total", label: "Sous-total", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "remise", label: "Remise", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "taxe", label: "Taxe", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "total", label: "Total", type: "number", min: "0", step: "0.01", defaultValue: "0" }] },
   facturation: {
-    title: "Facturation", description: "Créez et suivez les factures clients et leurs échéances.", table: "factures", nameField: "numero", readPermission: "VENTE_READ", createPermission: "VENTE_CREATE", updatePermission: "VENTE_UPDATE", deletePermission: "VENTE_DELETE", columns: ["id", "numero", "vente_id", "client_id", "date_facture", "date_echeance", "montant_ttc", "montant_paye", "reste_a_payer", "statut"], fields: [{ name: "numero", label: "Numéro", required: true }, { name: "vente_id", label: "Identifiant vente", required: true }, { name: "client_id", label: "Identifiant client", required: true }, { name: "date_facture", label: "Date", type: "date", required: true }, { name: "date_echeance", label: "Échéance", type: "date" }, { name: "montant_ht", label: "Montant HT", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "taxe", label: "Taxe", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "montant_ttc", label: "Montant TTC", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "montant_paye", label: "Montant payé", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "reste_a_payer", label: "Reste à payer", type: "number", min: "0", step: "0.01", defaultValue: "0" }] },
+    title: "Facturation", description: "Créez et suivez les factures clients et leurs échéances.", table: "factures", nameField: "numero", readPermission: "VENTE_READ", createPermission: "VENTE_CREATE", updatePermission: "VENTE_UPDATE", deletePermission: "VENTE_DELETE", generatedNumber: { field: "numero", prefix: "FAC" }, columns: ["id", "numero", "vente_id", "client_id", "date_facture", "date_echeance", "montant_ttc", "montant_paye", "reste_a_payer", "statut"], fields: [{ name: "vente_id", label: "Identifiant vente", required: true }, { name: "client_id", label: "Identifiant client", required: true }, { name: "date_facture", label: "Date", type: "date", required: true }, { name: "date_echeance", label: "Échéance", type: "date" }, { name: "montant_ht", label: "Montant HT", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "taxe", label: "Taxe", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "montant_ttc", label: "Montant TTC", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "montant_paye", label: "Montant payé", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "reste_a_payer", label: "Reste à payer", type: "number", min: "0", step: "0.01", defaultValue: "0" }] },
   comptabilite: { title: "Comptabilité", description: "Saisissez, contrôlez et validez les écritures comptables de l’entreprise.", table: "ecritures_comptables", permission: "COMPTA_READ", columns: ["numero", "date_ecriture", "libelle", "statut"] },
   bilans: { title: "Bilans", description: "Générez et consultez les bilans par exercice comptable.", table: "bilans", permission: "BILAN_READ", columns: ["exercice_id", "date_generation", "total_actif", "total_passif", "resultat", "statut"] },
   rapports: { title: "Rapports financiers", description: "Créez et consultez les rapports financiers sur une période définie.", table: "rapports_financiers", permission: "RAPPORT_READ", columns: ["reference", "nom", "date_debut", "date_fin", "solde_final", "statut"] },
@@ -206,18 +206,22 @@ function AdminAccessView({ roles, rolePermissions, can }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [savingUser, setSavingUser] = useState(null);
+  const [availableRoles, setAvailableRoles] = useState([]);
+  const [selectedRoles, setSelectedRoles] = useState({});
 
   useEffect(() => {
     let isMounted = true;
     async function loadAdministration() {
-      const [profilesResult, rolesResult] = await Promise.all([
+      const [profilesResult, rolesResult, availableRolesResult] = await Promise.all([
         supabase.from("profiles").select("id, nom, prenom, telephone, actif, created_at").order("created_at", { ascending: true }),
         supabase.from("user_roles").select("user_id, role:roles(code, nom)"),
+        supabase.from("roles").select("id, code, nom").order("nom"),
       ]);
       if (!isMounted) return;
-      if (profilesResult.error || rolesResult.error) setError((profilesResult.error || rolesResult.error).message);
+      if (profilesResult.error || rolesResult.error || availableRolesResult.error) setError((profilesResult.error || rolesResult.error || availableRolesResult.error).message);
       setUsers(profilesResult.data || []);
       setUserRoles(rolesResult.data || []);
+      setAvailableRoles(availableRolesResult.data || []);
       setLoading(false);
     }
     loadAdministration();
@@ -235,13 +239,40 @@ function AdminAccessView({ roles, rolePermissions, can }) {
     else setUsers((current) => current.map((item) => item.id === user.id ? { ...item, actif: !user.actif } : item));
   }
 
+  async function assignRole(userId) {
+    const roleId = selectedRoles[userId];
+    if (!roleId || !can("USER_MANAGE")) return;
+    setError(null);
+    const { error: insertError } = await supabase.from("user_roles").insert({ user_id: userId, role_id: roleId });
+    if (insertError) {
+      setError(insertError.message);
+      return;
+    }
+    const role = availableRoles.find((item) => item.id === roleId);
+    setUserRoles((current) => [...current, { user_id: userId, role: role || null }]);
+    setSelectedRoles((current) => ({ ...current, [userId]: "" }));
+  }
+
+  async function removeRole(userId, roleCode) {
+    if (!can("USER_MANAGE")) return;
+    const role = availableRoles.find((item) => item.code === roleCode);
+    if (!role) return;
+    setError(null);
+    const { error: deleteError } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role_id", role.id);
+    if (deleteError) {
+      setError(deleteError.message);
+      return;
+    }
+    setUserRoles((current) => current.filter((item) => !(item.user_id === userId && item.role?.code === roleCode)));
+  }
+
   return (
     <div className="admin-grid">
       <section className="content-panel admin-users-panel">
         <div className="section-heading"><div><p className="section-kicker">Administration · USER_READ / USER_MANAGE</p><h2>Utilisateurs & rôles</h2><p className="panel-description">Consultez les comptes, leurs rôles et leur statut d’activité. Les changements de rôle restent soumis aux règles de sécurité Supabase.</p></div><span className="record-count">{users.length} profil{users.length > 1 ? "s" : ""}</span></div>
         <div className="policy-note"><strong>Lecture sécurisée</strong><span>Les profils et rôles affichés proviennent de Supabase. L’attribution reste contrôlée par les policies RLS existantes.</span></div>
         {error && <p className="message error">Erreur de lecture : {error}</p>}
-        {loading ? <p className="empty">Chargement…</p> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Utilisateur</th><th>Contact</th><th>Rôle</th><th>Statut</th>{can("USER_MANAGE") && <th>Opération</th>}</tr></thead><tbody>{users.map((user) => <tr key={user.id}><td><strong>{`${user.prenom || ""} ${user.nom || ""}`.trim() || "Profil sans nom"}</strong><small>{user.id}</small></td><td>{displayValue(user.telephone)}</td><td><span className="role-badge">{rolesForUser(user.id)}</span></td><td><span className={`status-dot ${user.actif ? "is-active" : "is-inactive"}`}>{user.actif ? "Actif" : "Inactif"}</span></td>{can("USER_MANAGE") && <td><button className="link-button" type="button" disabled={savingUser === user.id} onClick={() => toggleUser(user)}>{user.actif ? "Désactiver" : "Activer"}</button></td>}</tr>)}</tbody></table></div>}
+        {loading ? <p className="empty">Chargement…</p> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Utilisateur</th><th>Contact</th><th>Rôle</th><th>Statut</th>{can("USER_MANAGE") && <th>Opérations</th>}</tr></thead><tbody>{users.map((user) => <tr key={user.id}><td><strong>{`${user.prenom || ""} ${user.nom || ""}`.trim() || "Profil sans nom"}</strong><small>{user.id}</small></td><td>{displayValue(user.telephone)}</td><td><div className="role-assignment">{userRoles.filter((item) => item.user_id === user.id && item.role).map((item) => <button className="role-badge" type="button" key={item.role.code} title="Retirer ce rôle" onClick={() => removeRole(user.id, item.role.code)}>{item.role.nom} ×</button>)}{!rolesForUser(user.id) && <span className="muted">Aucun rôle</span>}{can("USER_MANAGE") && <div className="role-assignment-controls"><select value={selectedRoles[user.id] || ""} onChange={(event) => setSelectedRoles((current) => ({ ...current, [user.id]: event.target.value }))}><option value="">Ajouter un rôle</option>{availableRoles.filter((role) => !userRoles.some((item) => item.user_id === user.id && item.role?.code === role.code)).map((role) => <option value={role.id} key={role.id}>{role.nom}</option>)}</select><button className="link-button" type="button" onClick={() => assignRole(user.id)}>Attribuer</button></div>}</div></td><td><span className={`status-dot ${user.actif ? "is-active" : "is-inactive"}`}>{user.actif ? "Actif" : "Inactif"}</span></td>{can("USER_MANAGE") && <td><button className="link-button" type="button" disabled={savingUser === user.id} onClick={() => toggleUser(user)}>{user.actif ? "Désactiver" : "Activer"}</button></td>}</tr>)}</tbody></table></div>}
       </section>
       <section className="content-panel permissions-panel"><div className="section-heading"><div><p className="section-kicker">Référentiel Supabase</p><h2>Privilèges par rôle</h2></div></div><div className="role-list">{[...roles].sort((a, b) => ROLE_ORDER.indexOf(a.code) - ROLE_ORDER.indexOf(b.code)).map((role) => <article className="role-card" key={role.id}><div><span className="role-code">{role.code}</span><h3>{role.nom}</h3><p>{role.description || "Aucune description"}</p></div><div className="permission-list">{(rolePermissions[role.id] || []).length ? rolePermissions[role.id].map((permission) => <span key={permission.code} title={permission.description}>{permission.nom}</span>) : <span className="muted">Aucun privilège enregistré dans la base.</span>}</div></article>)}</div></section>
     </div>

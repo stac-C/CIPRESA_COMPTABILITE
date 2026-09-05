@@ -1,11 +1,13 @@
 :root {
-  --navy: #1f3864;
-  --accent: #2e75b6;
-  --grey: #595959;
-  --light: #f2f2f2;
-  --bg: #f7f8fa;
+  --navy: #164b36;
+  --accent: #198754;
+  --accent-dark: #11633d;
+  --accent-soft: #e7f4ec;
+  --grey: #566b61;
+  --light: #edf5ef;
+  --bg: #f4f8f5;
   --danger: #b3261e;
-  --success: #2e7d32;
+  --success: #198754;
   --warning: #b26a00;
 }
 
@@ -396,15 +398,18 @@ body {
   margin: 0 0 16px;
   font-size: 1.1rem;
   color: var(--navy);
+  --success: #198754;
 }
 
 .data-table {
   width: 100%;
-  border-collapse: collapse;
-  font-size: 0.88rem;
-}
-
-.data-table th {
+  --navy: #164b36;
+  --accent: #198754;
+  --accent-dark: #11633d;
+  --accent-soft: #e7f4ec;
+  --grey: #566b61;
+  --light: #edf5ef;
+  --bg: #f4f8f5;
   text-align: left;
   color: var(--grey);
   font-weight: 500;

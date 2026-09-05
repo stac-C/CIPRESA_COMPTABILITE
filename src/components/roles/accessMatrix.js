@@ -31,10 +31,13 @@ export const TAB_ACCESS = {
   profile: {},
 };
 
+export const CONSULTANT_READ_TABS = ["clients", "fournisseurs", "achats", "projets", "ventes", "facturation", "inventaire"];
+
 export function canAccessTab(tabId, { can, hasRole }) {
   const access = TAB_ACCESS[tabId];
   if (!access) return false;
   if (hasRole("ADMIN")) return true;
+  if (hasRole("CONSULTANT") && CONSULTANT_READ_TABS.includes(tabId)) return can(access.permission || "CLIENT_READ");
   if (access.roles && !access.roles.some((role) => hasRole(role))) return false;
   return !access.permission || can(access.permission);
 }
