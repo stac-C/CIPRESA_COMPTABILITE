@@ -516,6 +516,7 @@ body {
 .stat-value { margin-top: 17px; color: #162b55; font-size: 1.17rem; }
 .stat-hint { color: #60738e; font-size: .62rem; }
 .overview-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(290px, .8fr); gap: 17px; }
+.chart-panel-wide { grid-column: 1 / -1; }
 .content-panel { min-width: 0; padding: 18px; border: 1px solid #d5dce6; border-radius: 7px; background: #fff; box-shadow: 0 2px 4px rgba(39, 55, 80, .025); }
 .content-panel h2 { margin: 0; color: #182235; font-size: 1rem; }
 .panel-description { margin: 7px 0 0; color: #637691; font-size: .68rem; line-height: 1.45; }
