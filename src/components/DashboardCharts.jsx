@@ -1,23 +1,46 @@
 import React from "react";
-import { Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 const COLORS = ["#0e7490", "#d97706", "#be123c", "#64748b"];
+const MONTHS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
+
+function monthKey(date) {
+  return date ? date.slice(0, 7) : null;
+}
+
+function lastSixMonths() {
+  const today = new Date();
+  return Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(today.getFullYear(), today.getMonth() - (5 - index), 1);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    return { key, label: `${MONTHS[date.getMonth()]} ${String(date.getFullYear()).slice(-2)}` };
+  });
+}
 
 export default function DashboardCharts({ invoices = [], sales = [] }) {
-  const byMonth = [...invoices.map((invoice) => ({ date: invoice.date_facture, amount: invoice.montant_ttc })), ...sales.map((sale) => ({ date: sale.date_vente, amount: sale.total }))].reduce((result, item) => {
-    const month = item.date?.slice(0, 7) || "Inconnu";
-    result[month] = (result[month] || 0) + Number(item.amount || 0);
+  const monthBuckets = lastSixMonths().reduce((result, month) => {
+    result[month.key] = { month: month.label, ventes: 0, factures: 0 };
     return result;
   }, {});
-  const evolution = Object.entries(byMonth).sort(([a], [b]) => a.localeCompare(b)).slice(-6).map(([month, total]) => ({ month, total }));
+  sales.forEach((sale) => {
+    const key = monthKey(sale.date_vente);
+    if (monthBuckets[key]) monthBuckets[key].ventes += Number(sale.total || 0);
+  });
+  invoices.forEach((invoice) => {
+    const key = monthKey(invoice.date_facture);
+    if (monthBuckets[key]) monthBuckets[key].factures += Number(invoice.montant_ttc || 0);
+  });
+  const evolution = Object.values(monthBuckets);
   const statuses = invoices.reduce((result, invoice) => {
-    result[invoice.statut] = (result[invoice.statut] || 0) + 1;
+    const status = invoice.statut || "NON RENSEIGNÉ";
+    result[status] = (result[status] || 0) + 1;
     return result;
   }, {});
   const pieData = Object.entries(statuses).map(([name, value]) => ({ name, value }));
+  const hasFinancialData = sales.length > 0 || invoices.length > 0;
 
   return <div className="overview-grid">
-    <section className="content-panel chart-panel"><div className="section-heading"><div><p className="section-kicker">Ventes et factures</p><h2>Activité financière sur six mois</h2></div></div><div className="chart-box"><ResponsiveContainer width="100%" height={240}><LineChart data={evolution}><XAxis dataKey="month" /><YAxis /><Tooltip formatter={(value) => `${Number(value).toLocaleString("fr-FR")} XAF`} /><Line type="monotone" dataKey="total" stroke="#0e7490" strokeWidth={3} dot={{ r: 4 }} /></LineChart></ResponsiveContainer></div></section>
-    <section className="content-panel chart-panel"><div className="section-heading"><div><p className="section-kicker">Répartition</p><h2>Statut des factures</h2></div></div><div className="chart-box"><ResponsiveContainer width="100%" height={240}><PieChart><Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={82} label>{pieData.map((entry, index) => <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer></div></section>
+    <section className="content-panel chart-panel"><div className="section-heading"><div><p className="section-kicker">Ventes et factures</p><h2>Activité financière sur six mois</h2></div></div><div className="chart-box">{hasFinancialData ? <ResponsiveContainer width="100%" height={240}><LineChart data={evolution}><XAxis dataKey="month" /><YAxis /><Tooltip formatter={(value) => `${Number(value).toLocaleString("fr-FR")} XAF`} /><Legend /><Line type="monotone" dataKey="ventes" name="Ventes" stroke="#0e7490" strokeWidth={3} dot={{ r: 4 }} /><Line type="monotone" dataKey="factures" name="Factures" stroke="#d97706" strokeWidth={3} dot={{ r: 4 }} /></LineChart></ResponsiveContainer> : <p className="empty chart-empty">Aucune vente ou facture disponible dans les données autorisées.</p>}</div></section>
+    <section className="content-panel chart-panel"><div className="section-heading"><div><p className="section-kicker">Répartition</p><h2>Statut des factures</h2></div></div><div className="chart-box">{pieData.length > 0 ? <ResponsiveContainer width="100%" height={240}><PieChart><Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={82} label>{pieData.map((entry, index) => <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer> : <p className="empty chart-empty">Aucune facture disponible dans les données autorisées.</p>}</div></section>
   </div>;
 }

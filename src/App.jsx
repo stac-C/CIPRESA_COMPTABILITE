@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import { Toaster } from "sonner";
 import useRealtimeNotifications from "./hooks/useRealtimeNotifications";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider } from "./context/ThemeContext";
 
 const queryClient = new QueryClient();
 import "./index.css";
@@ -54,10 +55,12 @@ function Gate() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Toaster position="top-right" richColors />
-        <Gate />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Toaster position="top-right" richColors />
+          <Gate />
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

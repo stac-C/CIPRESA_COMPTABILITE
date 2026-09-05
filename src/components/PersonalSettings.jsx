@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { useTheme } from "../context/ThemeContext";
 
 export default function PersonalSettings({ profile, roles, onSaved }) {
+  const { theme, setTheme } = useTheme();
   const [form, setForm] = useState({ nom: profile?.nom || "", prenom: profile?.prenom || "", telephone: profile?.telephone || "", adresse: profile?.adresse || "", ville: profile?.ville || "" });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
@@ -38,7 +40,7 @@ export default function PersonalSettings({ profile, roles, onSaved }) {
           <button className="primary-button" type="submit" disabled={saving}>{saving ? "Enregistrement..." : "Enregistrer les changements"}</button>
         </form>
       </section>
-      <section className="content-panel profile-summary-panel"><p className="section-kicker">Accès du compte</p><h2>Vos rôles et droits</h2><div className="permission-list">{roles.map((role) => <span key={role.id}>{role.nom}</span>)}</div><p className="policy-note">Les droits d’accès sont chargés depuis Supabase. Une modification d’information personnelle ne modifie jamais votre rôle.</p></section>
+      <section className="content-panel profile-summary-panel"><p className="section-kicker">Préférences et accès</p><h2>Votre espace</h2><div className="theme-switcher" role="group" aria-label="Choisir le thème"><button className={theme === "light" ? "theme-option active" : "theme-option"} type="button" onClick={() => setTheme("light")}>☼ Clair</button><button className={theme === "dark" ? "theme-option active" : "theme-option"} type="button" onClick={() => setTheme("dark")}>◐ Sombre</button></div><h3 className="settings-subtitle">Vos rôles et droits</h3><div className="permission-list">{roles.map((role) => <span key={role.id}>{role.nom}</span>)}</div><p className="policy-note">Les droits d’accès sont chargés depuis Supabase. Une modification d’information personnelle ne modifie jamais votre rôle.</p></section>
     </div>
   );
 }

@@ -32,6 +32,14 @@
 .data-table td { border-bottom-color: #e5f0e7; }
 .operation-status.allowed, .task-item.allowed i { background: #d1efda; color: var(--accent-dark); }
 .chart-box { min-height: 240px; margin-top: 14px; }
+.chart-empty { min-height: 240px; display: grid; place-items: center; margin: 0; padding: 18px; text-align: center; }
+.theme-switcher { display: inline-flex; gap: 4px; margin: 15px 0 19px; padding: 4px; border: 1px solid #d5e3da; border-radius: 8px; background: #f1f7f3; }
+.theme-option { border: 0; border-radius: 5px; padding: 8px 11px; background: transparent; color: #557162; font: inherit; font-size: .68rem; cursor: pointer; transition: background .2s ease, color .2s ease, transform .2s ease; }
+.theme-option:hover { transform: translateY(-1px); }
+.theme-option.active { background: #fff; color: var(--accent-dark); box-shadow: 0 2px 6px rgba(22, 75, 54, .1); font-weight: 700; }
+.settings-subtitle { margin: 0 0 10px; color: var(--navy); font-size: .82rem; }
+.theme-toggle { transition: background .2s ease, transform .2s ease; }
+.theme-toggle:hover { transform: rotate(12deg) scale(1.04); }
 .table-pagination, .form-actions { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
 .table-actions { display: flex; gap: 10px; }
 .link-button.danger { color: var(--danger); }
@@ -40,8 +48,60 @@
 .resource-workspace { display: grid; gap: 17px; }
 .accounting-field textarea { min-height: 76px; resize: vertical; padding: 10px 11px; border: 1px solid #d5dce6; border-radius: 4px; font: inherit; }
 
+@keyframes page-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes panel-enter { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: scale(1); } }
+
+.page-content { animation: page-enter .45s ease both; }
+.content-panel, .stat-card, .role-hero, .quick-action { animation: panel-enter .4s ease both; }
+.content-panel:nth-child(2), .stat-card:nth-child(2), .quick-action:nth-child(2) { animation-delay: .04s; }
+.content-panel:nth-child(3), .stat-card:nth-child(3), .quick-action:nth-child(3) { animation-delay: .08s; }
+.content-panel:nth-child(4), .stat-card:nth-child(4), .quick-action:nth-child(4) { animation-delay: .12s; }
+
+button, input, select, textarea { transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease, color .2s ease, transform .2s ease; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid rgba(25, 135, 84, .28); outline-offset: 2px; }
+
+[data-theme="dark"] body { background: #101814; color: #e4eee8; }
+[data-theme="dark"] .app-shell { background: #101814; color: #e4eee8; }
+[data-theme="dark"] .sidebar { background: #15231c; border-color: #294335; }
+[data-theme="dark"] .brand { color: #b8e3c6; border-color: #294335; }
+[data-theme="dark"] .brand small, [data-theme="dark"] .sidebar-user small { color: #8db69b; }
+[data-theme="dark"] .nav-item { color: #a8c2b0; }
+[data-theme="dark"] .nav-item:hover { background: #203b2c; color: #d4f0dc; }
+[data-theme="dark"] .nav-item.active { background: #28523a; color: #e4f7e9; }
+[data-theme="dark"] .topbar { background: #142119; border-color: #294335; }
+[data-theme="dark"] .search-box { background: #1b3024; color: #aad5b8; }
+[data-theme="dark"] .search-box span, [data-theme="dark"] .page-title .subtitle { color: #8aa695; }
+[data-theme="dark"] .icon-button, [data-theme="dark"] .profile-button, [data-theme="dark"] .outline-button { border-color: #365542; background: #1a2b21; color: #c6e3ce; }
+[data-theme="dark"] .page-title h1, [data-theme="dark"] .content-panel h2, [data-theme="dark"] .role-hero h2, [data-theme="dark"] .task-panel h2, [data-theme="dark"] .settings-subtitle { color: #e4f3e8; }
+[data-theme="dark"] .section-kicker, [data-theme="dark"] .stat-label { color: #90c8a0; }
+[data-theme="dark"] .content-panel, [data-theme="dark"] .stat-card { border-color: #2c4938; background: #17251d; box-shadow: 0 8px 24px rgba(0, 0, 0, .16); }
+[data-theme="dark"] .panel-description, [data-theme="dark"] .role-hero p:not(.section-kicker), [data-theme="dark"] .role-focus-card p, [data-theme="dark"] .stat-hint, [data-theme="dark"] .record-count, [data-theme="dark"] .empty { color: #9ab7a3; }
+[data-theme="dark"] .stat-value, [data-theme="dark"] .role-focus-card strong { color: #e3f4e8; }
+[data-theme="dark"] .role-hero { border-color: #386148; background: linear-gradient(120deg, #1b3927, #17271e); }
+[data-theme="dark"] .quick-action, [data-theme="dark"] .admin-operation, [data-theme="dark"] .task-item, [data-theme="dark"] .role-card { border-color: #31513f; background: #1b2d23; color: #cce4d2; }
+[data-theme="dark"] .quick-action:hover, [data-theme="dark"] .admin-operation:hover:not(:disabled) { border-color: #66a578; background: #254431; }
+[data-theme="dark"] .quick-action small, [data-theme="dark"] .admin-operation small, [data-theme="dark"] .role-card p { color: #91ad9b; }
+[data-theme="dark"] .accounting-form input, [data-theme="dark"] .accounting-form select, [data-theme="dark"] .accounting-field textarea, [data-theme="dark"] .settings-form input { border-color: #365542; background: #132019; color: #e2f0e5; }
+[data-theme="dark"] .data-table th { color: #9bc8a7; border-color: #365542; }
+[data-theme="dark"] .data-table td { color: #c1d8c7; border-color: #294435; }
+[data-theme="dark"] .theme-switcher { border-color: #365542; background: #132019; }
+[data-theme="dark"] .theme-option { color: #a5c2ad; }
+[data-theme="dark"] .theme-option.active { background: #326347; color: #f0fff3; }
+[data-theme="dark"] .policy-note, [data-theme="dark"] .task-panel { border-color: #386148; background: #1c3726; color: #b5d1bc; }
+[data-theme="dark"] .permission-list span { border-color: #386148; background: #203d2b; color: #bce0c5; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
 @media (max-width: 620px) {
   .modal-backdrop { padding: 10px; }
   .pdf-modal { padding: 10px; }
   .table-actions { display: grid; gap: 5px; }
+  .topbar-actions { gap: 4px; }
+  .profile-button { padding-left: 7px; font-size: 0; }
+  .page-actions { flex-wrap: wrap; }
+  .page-actions button { flex: 1 1 145px; }
+  .overview-grid { gap: 12px; }
+  .chart-box { overflow: hidden; }
 }

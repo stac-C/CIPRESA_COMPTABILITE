@@ -24,11 +24,11 @@ async function fetchDashboardData(isAccountingUser) {
     supabase.from("fournisseurs").select("*", { count: "exact", head: true }),
     supabase.from("projets").select("*", { count: "exact", head: true }),
     supabase.from("ventes").select("*", { count: "exact", head: true }),
-    supabase.from("ventes").select("id, total, statut, date_vente").order("date_vente", { ascending: true }).limit(500),
+    supabase.from("ventes").select("id, total, statut, date_vente").gte("date_vente", sixMonthsAgo).order("date_vente", { ascending: true }).limit(500),
     supabase.from("achats").select("*", { count: "exact", head: true }),
     supabase.from("produits").select("*", { count: "exact", head: true }),
     supabase.from("factures").select("*", { count: "exact", head: true }),
-    supabase.from("factures").select("id, numero, date_facture, montant_ttc, reste_a_payer, statut").gte("date_facture", sixMonthsAgo).order("date_facture", { ascending: false }).limit(100),
+    supabase.from("factures").select("id, numero, date_facture, montant_ttc, reste_a_payer, statut").gte("date_facture", sixMonthsAgo).order("date_facture", { ascending: false }).limit(500),
     supabase.from("comptes").select("*", { count: "exact", head: true }),
   ]);
   const error = clients.error || fournisseurs.error || projets.error || ventesCount.error || ventes.error || achats.error || produits.error || facturesCount.error || factures.error || comptes.error;

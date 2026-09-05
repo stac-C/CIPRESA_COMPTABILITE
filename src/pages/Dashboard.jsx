@@ -17,6 +17,7 @@ import ResourceWorkspace from "../components/resources/ResourceWorkspace";
 import { useDashboardData } from "../hooks/useDashboardData";
 import DashboardCharts from "../components/DashboardCharts";
 import FacturesDataTable from "../components/FacturesDataTable";
+import { useTheme } from "../context/ThemeContext";
 
 const NAV_ITEMS = [
   { id: "dashboard", label: "Tableau de bord", icon: "📊" },
@@ -231,7 +232,7 @@ function AdminAccessView({ roles, rolePermissions, can }) {
     return () => { isMounted = false; };
   }, []);
 
-  const rolesForUser = (userId) => userRoles.filter((item) => item.user_id === userId).map((item) => item.role?.nom).filter(Boolean).join(", ") || "Aucun rôle";
+  const rolesForUser = (userId) => userRoles.filter((item) => item.user_id === userId).map((item) => item.role?.nom).filter(Boolean).join(", ");
 
   async function toggleUser(user) {
     if (!can("USER_MANAGE")) return;
@@ -284,6 +285,7 @@ function AdminAccessView({ roles, rolePermissions, can }) {
 
 export default function Dashboard() {
   const { profile, roles, permissions, rolePermissions, hasRole, can, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState(getTabFromPath);
   const isAccountingUser = hasRole("COMPTABLE") && !hasRole("ADMIN") && !hasRole("GERANT");
   const { data: dashboardData, isLoading: loading, error: queryError } = useDashboardData(isAccountingUser);
@@ -334,7 +336,7 @@ export default function Dashboard() {
   return (
     <div className="app-shell">
       <aside className="sidebar"><div className="brand"><span className="brand-mark-small">C</span><div><strong>CIPRESA</strong><small>Plateforme Comptable</small></div></div><nav aria-label="Navigation principale">{visibleNav.map((item) => <button className={activeTab === item.id ? "nav-item active" : "nav-item"} type="button" aria-current={activeTab === item.id ? "page" : undefined} key={item.id} onClick={() => navigateToTab(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}</nav><div className="sidebar-user"><span className="avatar">{(profile?.prenom || profile?.nom || "U").charAt(0).toUpperCase()}</span><div><strong>{`${profile?.prenom || ""} ${profile?.nom || ""}`.trim() || "Utilisateur"}</strong><small>{roles.map(({ nom }) => nom).join(" · ")}</small></div></div></aside>
-      <main className="main-area"><header className="topbar"><div className="search-box">⌕ <span>Rechercher...</span></div><div className="topbar-actions"><button className="icon-button" title="Notifications">♧</button><button className="icon-button" title="Aide">?</button><button className="profile-button" onClick={signOut}>Profil <span className="avatar avatar-small">{(profile?.prenom || profile?.nom || "U").charAt(0).toUpperCase()}</span></button></div></header><div className="page-content"><div className="page-title"><div><p className="section-kicker">Données en temps réel · v_tableau_bord</p><h1>{activeTab === "dashboard" ? "Aperçu financier" : NAV_ITEMS.find((item) => item.id === activeTab)?.label}</h1><p className="subtitle">{roles.map(({ nom }) => nom).join(", ")} · {permissions.length} permission{permissions.length > 1 ? "s" : ""}</p></div><div className="page-actions"><button className="outline-button">▣ Ce mois</button>{can("RAPPORT_CREATE") && <button className="primary-button">Générer Rapport</button>}</div></div>{renderContent()}</div></main>
+      <main className="main-area"><header className="topbar"><div className="search-box">⌕ <span>Rechercher...</span></div><div className="topbar-actions"><button className="icon-button" title="Notifications">♧</button><button className="icon-button" title="Aide">?</button><button className="icon-button theme-toggle" type="button" title={theme === "dark" ? "Activer le mode clair" : "Activer le mode sombre"} aria-label={theme === "dark" ? "Activer le mode clair" : "Activer le mode sombre"} onClick={toggleTheme}>{theme === "dark" ? "☼" : "◐"}</button><button className="profile-button" onClick={signOut}>Profil <span className="avatar avatar-small">{(profile?.prenom || profile?.nom || "U").charAt(0).toUpperCase()}</span></button></div></header><div className="page-content"><div className="page-title"><div><p className="section-kicker">Données en temps réel · v_tableau_bord</p><h1>{activeTab === "dashboard" ? "Aperçu financier" : NAV_ITEMS.find((item) => item.id === activeTab)?.label}</h1><p className="subtitle">{roles.map(({ nom }) => nom).join(", ")} · {permissions.length} permission{permissions.length > 1 ? "s" : ""}</p></div><div className="page-actions"><button className="outline-button">▣ Ce mois</button>{can("RAPPORT_CREATE") && <button className="primary-button">Générer Rapport</button>}</div></div>{renderContent()}</div></main>
     </div>
   );
 }
