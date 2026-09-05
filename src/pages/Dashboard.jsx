@@ -286,8 +286,9 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState(getTabFromPath);
   const isAccountingUser = hasRole("COMPTABLE") && !hasRole("ADMIN") && !hasRole("GERANT");
   const { data: dashboardData, isLoading: loading, error: queryError } = useDashboardData(isAccountingUser);
-  const stats = dashboardData?.stats || { clients: 0, factures: 0, resteAPayer: 0, comptes: 0, ecritures: 0, bilans: 0, rapports: 0 };
+  const stats = dashboardData?.stats || { clients: 0, fournisseurs: 0, projets: 0, ventes: 0, achats: 0, produits: 0, factures: 0, chiffreAffaires: 0, resteAPayer: 0, comptes: 0, ecritures: 0, bilans: 0, rapports: 0 };
   const factures = dashboardData?.factures || [];
+  const ventes = dashboardData?.ventes || [];
   const error = queryError?.message || null;
 
   const visibleNav = NAV_ITEMS.filter((item) => item.id === "dashboard" || canAccessTab(item.id, { can, hasRole }));
@@ -314,7 +315,7 @@ export default function Dashboard() {
   }
 
   function renderContent() {
-    if (activeTab === "dashboard") return <><RoleDashboard roles={roles} onNavigate={navigateToTab} can={can} /><DashboardOverview loading={loading} error={error} stats={stats} factures={factures} isAccountingUser={isAccountingUser} /></>;
+    if (activeTab === "dashboard") return <><RoleDashboard roles={roles} onNavigate={navigateToTab} can={can} /><DashboardOverview loading={loading} error={error} stats={stats} factures={factures} ventes={ventes} isAccountingUser={isAccountingUser} /></>;
     if (activeTab === "profile") return <PersonalSettings profile={profile} roles={roles} />;
     if (activeTab === "configuration" && hasRole("ADMIN")) return <><AdminControlCenter can={can} onNavigate={navigateToTab} /><AdminAccessView roles={roles} rolePermissions={rolePermissions} can={can} /></>;
     if (["comptabilite", "bilans", "rapports"].includes(activeTab)) return <ComptabiliteWorkspace section={activeTab} session={{ user: { id: profile?.id } }} can={can} />;
@@ -336,6 +337,6 @@ export default function Dashboard() {
   );
 }
 
-function DashboardOverview({ loading, error, stats, factures }) {
-  return <>{error && <p className="message error">Erreur de chargement : {error}</p>}{loading ? <p className="empty">Chargement des données…</p> : <><section className="stats-grid"><StatCard label="Clients actifs" value={stats.clients.toLocaleString("fr-FR")} hint="Base clients Supabase" /><StatCard label="Factures totales" value={stats.factures.toLocaleString("fr-FR")} hint="Données factures" /><StatCard label="Créances clients" value={`${stats.resteAPayer.toLocaleString("fr-FR")} XAF`} hint="Factures récentes" /><StatCard label="Comptes trésorerie" value={stats.comptes.toLocaleString("fr-FR")} hint="Comptes actifs" /></section><DashboardCharts invoices={factures} /><FacturesDataTable factures={factures} /></>}</>;
+function DashboardOverview({ loading, error, stats, factures, ventes }) {
+  return <>{error && <p className="message error">Erreur de chargement : {error}</p>}{loading ? <p className="empty">Chargement des données…</p> : <><section className="stats-grid"><StatCard label="Clients" value={stats.clients.toLocaleString("fr-FR")} hint="Lignes autorisées par RLS" /><StatCard label="Fournisseurs" value={stats.fournisseurs.toLocaleString("fr-FR")} hint="Référentiel Supabase" /><StatCard label="Projets" value={stats.projets.toLocaleString("fr-FR")} hint="Portefeuille accessible" /><StatCard label="Ventes" value={stats.ventes.toLocaleString("fr-FR")} hint="Transactions accessibles" /><StatCard label="Factures" value={stats.factures.toLocaleString("fr-FR")} hint="Documents accessibles" /><StatCard label="Chiffre d’affaires" value={`${stats.chiffreAffaires.toLocaleString("fr-FR")} XAF`} hint="Total des ventes visibles" /><StatCard label="Créances clients" value={`${stats.resteAPayer.toLocaleString("fr-FR")} XAF`} hint="Factures des six derniers mois" /><StatCard label="Produits" value={stats.produits.toLocaleString("fr-FR")} hint="Catalogue accessible" /></section><DashboardCharts invoices={factures} sales={ventes} /><FacturesDataTable factures={factures} /></>}</>;
 }
