@@ -10,11 +10,11 @@ async function fetchDashboardData(isAccountingUser) {
       supabase.from("bilans").select("*", { count: "exact", head: true }),
       supabase.from("rapports_financiers").select("*", { count: "exact", head: true }),
     ]);
-    const error = entries.error || balances.error || reports.error;
-    if (error) throw error;
     return {
-      stats: { clients: 0, factures: 0, resteAPayer: 0, comptes: 0, ecritures: entries.count || 0, bilans: balances.count || 0, rapports: reports.count || 0 },
+      stats: { clients: 0, fournisseurs: 0, projets: 0, ventes: 0, achats: 0, produits: 0, factures: 0, chiffreAffaires: 0, resteAPayer: 0, comptes: 0, ecritures: entries.count || 0, bilans: balances.count || 0, rapports: reports.count || 0 },
       factures: [],
+      ventes: [],
+      metricErrors: [entries, balances, reports].filter(({ error }) => error).map(({ error }) => error.message),
     };
   }
 

@@ -136,14 +136,15 @@ function titleForColumn(column) {
   return column.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function RoleDashboard({ roles, onNavigate, can }) {
+function RoleDashboard({ roles, onNavigate, can, stats, loading }) {
   const hasRole = (role) => roles.some(({ code }) => code === role);
-  if (hasRole("ADMIN")) return <AdminDashboard onNavigate={onNavigate} can={can} />;
-  if (hasRole("GERANT")) return <GerantDashboard onNavigate={onNavigate} can={can} />;
-  if (hasRole("COMPTABLE")) return <ComptableDashboard onNavigate={onNavigate} can={can} />;
-  if (hasRole("AGENT_COMMERCIAL")) return <AgentCommercialDashboard onNavigate={onNavigate} can={can} />;
-  if (hasRole("MAGASINIER")) return <MagasinierDashboard onNavigate={onNavigate} can={can} />;
-  return <ConsultantDashboard onNavigate={onNavigate} can={can} />;
+  const props = { onNavigate, can, stats, loading };
+  if (hasRole("ADMIN")) return <AdminDashboard {...props} />;
+  if (hasRole("GERANT")) return <GerantDashboard {...props} />;
+  if (hasRole("COMPTABLE")) return <ComptableDashboard {...props} />;
+  if (hasRole("AGENT_COMMERCIAL")) return <AgentCommercialDashboard {...props} />;
+  if (hasRole("MAGASINIER")) return <MagasinierDashboard {...props} />;
+  return <ConsultantDashboard {...props} />;
 }
 
 function getTabFromPath() {
@@ -289,6 +290,7 @@ export default function Dashboard() {
   const stats = dashboardData?.stats || { clients: 0, fournisseurs: 0, projets: 0, ventes: 0, achats: 0, produits: 0, factures: 0, chiffreAffaires: 0, resteAPayer: 0, comptes: 0, ecritures: 0, bilans: 0, rapports: 0 };
   const factures = dashboardData?.factures || [];
   const ventes = dashboardData?.ventes || [];
+  const metricErrors = dashboardData?.metricErrors || [];
   const error = queryError?.message || null;
 
   const visibleNav = NAV_ITEMS.filter((item) => item.id === "dashboard" || canAccessTab(item.id, { can, hasRole }));
@@ -315,7 +317,7 @@ export default function Dashboard() {
   }
 
   function renderContent() {
-    if (activeTab === "dashboard") return <><RoleDashboard roles={roles} onNavigate={navigateToTab} can={can} /><DashboardOverview loading={loading} error={error} stats={stats} factures={factures} ventes={ventes} isAccountingUser={isAccountingUser} /></>;
+    if (activeTab === "dashboard") return <><RoleDashboard roles={roles} onNavigate={navigateToTab} can={can} stats={stats} loading={loading} /><DashboardOverview loading={loading} error={error} metricErrors={metricErrors} stats={stats} factures={factures} ventes={ventes} isAccountingUser={isAccountingUser} /></>;
     if (activeTab === "profile") return <PersonalSettings profile={profile} roles={roles} />;
     if (activeTab === "configuration" && hasRole("ADMIN")) return <><AdminControlCenter can={can} onNavigate={navigateToTab} /><AdminAccessView roles={roles} rolePermissions={rolePermissions} can={can} /></>;
     if (["comptabilite", "bilans", "rapports"].includes(activeTab)) return <ComptabiliteWorkspace section={activeTab} session={{ user: { id: profile?.id } }} can={can} />;
@@ -337,6 +339,6 @@ export default function Dashboard() {
   );
 }
 
-function DashboardOverview({ loading, error, stats, factures, ventes }) {
-  return <>{error && <p className="message error">Erreur de chargement : {error}</p>}{loading ? <p className="empty">Chargement des données…</p> : <><section className="stats-grid"><StatCard label="Clients" value={stats.clients.toLocaleString("fr-FR")} hint="Lignes autorisées par RLS" /><StatCard label="Fournisseurs" value={stats.fournisseurs.toLocaleString("fr-FR")} hint="Référentiel Supabase" /><StatCard label="Projets" value={stats.projets.toLocaleString("fr-FR")} hint="Portefeuille accessible" /><StatCard label="Ventes" value={stats.ventes.toLocaleString("fr-FR")} hint="Transactions accessibles" /><StatCard label="Factures" value={stats.factures.toLocaleString("fr-FR")} hint="Documents accessibles" /><StatCard label="Chiffre d’affaires" value={`${stats.chiffreAffaires.toLocaleString("fr-FR")} XAF`} hint="Total des ventes visibles" /><StatCard label="Créances clients" value={`${stats.resteAPayer.toLocaleString("fr-FR")} XAF`} hint="Factures des six derniers mois" /><StatCard label="Produits" value={stats.produits.toLocaleString("fr-FR")} hint="Catalogue accessible" /></section><DashboardCharts invoices={factures} sales={ventes} /><FacturesDataTable factures={factures} /></>}</>;
+function DashboardOverview({ loading, error, metricErrors, stats, factures, ventes }) {
+  return <>{error && <p className="message error">Erreur de chargement : {error}</p>}{!error && metricErrors.length > 0 && <p className="message warning">Certaines métriques ne sont pas disponibles avec les policies RLS actuelles. L’espace comptable reste accessible.</p>}{loading ? <p className="empty">Chargement des données…</p> : <><section className="stats-grid"><StatCard label="Clients" value={stats.clients.toLocaleString("fr-FR")} hint="Lignes autorisées par RLS" /><StatCard label="Fournisseurs" value={stats.fournisseurs.toLocaleString("fr-FR")} hint="Référentiel Supabase" /><StatCard label="Projets" value={stats.projets.toLocaleString("fr-FR")} hint="Portefeuille accessible" /><StatCard label="Ventes" value={stats.ventes.toLocaleString("fr-FR")} hint="Transactions accessibles" /><StatCard label="Factures" value={stats.factures.toLocaleString("fr-FR")} hint="Documents accessibles" /><StatCard label="Chiffre d’affaires" value={`${stats.chiffreAffaires.toLocaleString("fr-FR")} XAF`} hint="Total des ventes visibles" /><StatCard label="Créances clients" value={`${stats.resteAPayer.toLocaleString("fr-FR")} XAF`} hint="Factures des six derniers mois" /><StatCard label="Produits" value={stats.produits.toLocaleString("fr-FR")} hint="Catalogue accessible" /></section><DashboardCharts invoices={factures} sales={ventes} /><FacturesDataTable factures={factures} /></>}</>;
 }
