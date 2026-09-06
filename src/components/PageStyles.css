@@ -89,6 +89,9 @@
 .resource-workspace { display: grid; gap: 17px; }
 .accounting-field textarea { min-height: 76px; resize: vertical; padding: 10px 11px; border: 1px solid #d5dce6; border-radius: 4px; font: inherit; }
 .profile-page { display: grid; gap: 17px; }
+.profile-error-panel { display: grid; gap: 12px; max-width: 720px; }
+.profile-error-panel h2 { margin: 0; }
+.profile-error-panel .primary-button { justify-self: start; }
 .profile-hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 24px; background: linear-gradient(120deg, #f3fbf5, #fff); }
 .profile-identity { display: flex; align-items: center; gap: 17px; min-width: 0; }
 .profile-identity h2 { margin: 0 0 5px; font-size: 1.25rem; }

@@ -165,6 +165,24 @@ const COMPTABLE_TASKS = [
   ["RAPPORT_CREATE", "Créer rapport"],
 ];
 
+class ProfileErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error) {
+      return <section className="content-panel profile-error-panel"><p className="section-kicker">Profil</p><h2>Le profil n’a pas pu être affiché</h2><p className="message error">{this.state.error.message || "Erreur inattendue lors du rendu du profil."}</p><button className="primary-button" type="button" onClick={() => window.location.reload()}>Recharger le profil</button></section>;
+    }
+    return this.props.children;
+  }
+}
+
 function displayValue(value) {
   if (typeof value === "boolean") return value ? "Oui" : "Non";
   if (value === null || value === undefined || value === "") return "-";
@@ -362,7 +380,7 @@ function AdminAccessView({ roles, rolePermissions, can }) {
 }
 
 export default function Dashboard() {
-  const { profile, roles, permissions, rolePermissions, hasRole, can, updateProfile } = useAuth();
+  const { profile, roles, permissions, rolePermissions, hasRole, can, signOut, updateProfile } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState(getTabFromPath);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -400,7 +418,7 @@ export default function Dashboard() {
 
   function renderContent() {
     if (activeTab === "dashboard") return <><RoleDashboard roles={roles} onNavigate={navigateToTab} can={can} stats={stats} loading={loading} /><DashboardOverview loading={loading} error={error} metricErrors={metricErrors} stats={stats} factures={factures} ventes={ventes} isAccountingUser={isAccountingUser} /></>;
-    if (activeTab === "profile") return <PersonalSettings profile={profile} roles={roles} onSaved={updateProfile} onSignOut={signOut} />;
+    if (activeTab === "profile") return <ProfileErrorBoundary><PersonalSettings profile={profile} roles={roles} onSaved={updateProfile} onSignOut={signOut} /></ProfileErrorBoundary>;
     if (activeTab === "configuration" && hasRole("ADMIN")) return <><AdminControlCenter can={can} onNavigate={navigateToTab} /><AdminAccessView roles={roles} rolePermissions={rolePermissions} can={can} /></>;
     if (["comptabilite", "bilans", "rapports"].includes(activeTab)) return <ComptabiliteWorkspace section={activeTab} session={{ user: { id: profile?.id } }} can={can} />;
     const resource = RESOURCE_CONFIG[activeTab];
