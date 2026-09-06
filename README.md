@@ -1,3 +1,14 @@
+# Notifications Push et appareils
+
+Le site utilise `public/sw.js` pour recevoir les notifications même lorsque l’onglet est fermé. Pour activer l’envoi hors ligne dans Supabase :
+
+1. Générer une paire de clés VAPID et placer la clé publique dans `VITE_VAPID_PUBLIC_KEY`.
+2. Déployer `supabase/functions/send-push-notification`.
+3. Ajouter dans les secrets de la fonction `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` et `VAPID_SUBJECT`.
+4. Créer un Database Webhook Supabase sur `public.notifications`, événement `INSERT`, qui appelle cette fonction.
+5. Exécuter `BD_SUPABASE.sql` pour créer les tables, les policies RLS et la publication Realtime.
+
+Les appareils et abonnements Push sont isolés par `user_id`. La révocation depuis Profil désactive l’appareil et supprime son abonnement Push. Le navigateur doit avoir reçu l’autorisation de notifications ; iOS nécessite l’installation du site sur l’écran d’accueil pour le Push Web.
 # COMPTA-CIPRESA — App React
 
 Application React (Vite + JavaScript) connectée à la base Supabase

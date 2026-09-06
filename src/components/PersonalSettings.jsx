@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Cropper from "react-easy-crop";
-import { Camera, Check, ImagePlus, LockKeyhole, Moon, Save, Sun, Upload, X } from "lucide-react";
+import { Camera, Check, ImagePlus, LockKeyhole, MonitorSmartphone, Moon, Save, ShieldCheck, Sun, Trash2, X } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
 import { useTheme } from "../context/ThemeContext";
 
@@ -42,6 +42,11 @@ export default function PersonalSettings({ profile, roles, onSaved }) {
   const [photoSaving, setPhotoSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [imageSrc, setImageSrc] = useState(null);
+  const [devices, setDevices] = useState([]);
+
+  useEffect(() => {
+    supabase.from("user_devices").select("id, device_key, label, user_agent, last_seen_at, created_at, revoked_at").eq("user_id", profile.id).order("last_seen_at", { ascending: false }).then(({ data }) => setDevices(data || []));
+  }, [profile.id]);
 
   function updateField(event) { setForm((current) => ({ ...current, [event.target.name]: event.target.value })); }
 
@@ -77,10 +82,18 @@ export default function PersonalSettings({ profile, roles, onSaved }) {
     finally { setPhotoSaving(false); }
   }
 
+  async function revokeDevice(device) {
+    const { error } = await supabase.from("user_devices").update({ revoked_at: new Date().toISOString() }).eq("id", device.id).eq("user_id", profile.id);
+    if (error) setMessage({ type: "error", text: error.message });
+    else setDevices((current) => current.map((item) => item.id === device.id ? { ...item, revoked_at: new Date().toISOString() } : item));
+    await supabase.from("push_subscriptions").delete().eq("user_id", profile.id).eq("device_key", device.device_key);
+  }
+
   return <div className="profile-page">
     {imageSrc && <CropModal imageSrc={imageSrc} onCancel={() => setImageSrc(null)} onSave={savePhoto} saving={photoSaving} />}
     <section className="profile-hero content-panel"><div className="profile-identity"><div className="profile-avatar-wrap"><Avatar profile={profile} /><label className="avatar-edit" title="Changer la photo"><Camera size={15} /><input type="file" accept="image/*" onChange={selectPhoto} /></label></div><div><p className="section-kicker">Compte utilisateur</p><h2>{`${profile?.prenom || ""} ${profile?.nom || ""}`.trim() || "Votre profil"}</h2><p>{roles.map(({ nom }) => nom).join(" · ")}</p><span className="profile-status"><Check size={13} /> Compte actif</span></div></div><div className="profile-hero-actions"><label className="outline-button upload-button"><ImagePlus size={15} /> Modifier la photo<input type="file" accept="image/*" onChange={selectPhoto} /></label><small>JPG ou PNG, 8 Mo maximum</small></div></section>
     {message && <p className={`message ${message.type}`}>{message.text}</p>}
     <div className="settings-grid profile-settings-grid"><section className="content-panel"><div className="section-heading"><div><p className="section-kicker">Informations personnelles</p><h2>Coordonnées</h2><p className="panel-description">Ces informations sont utilisées pour personnaliser votre espace CIPRESA.</p></div><LockKeyhole size={19} className="section-icon" /></div><form className="settings-form" onSubmit={saveProfile}><label>Prénom <span className="field-hint">Votre prénom affiché.</span><input name="prenom" value={form.prenom} onChange={updateField} required /></label><label>Nom <span className="field-hint">Votre nom de famille.</span><input name="nom" value={form.nom} onChange={updateField} required /></label><label>Téléphone <span className="field-hint">Numéro de contact.</span><input name="telephone" value={form.telephone} onChange={updateField} /></label><label>Adresse <span className="field-hint">Adresse professionnelle ou personnelle.</span><input name="adresse" value={form.adresse} onChange={updateField} /></label><label>Ville <span className="field-hint">Ville d’activité.</span><input name="ville" value={form.ville} onChange={updateField} /></label><button className="primary-button profile-save-button" type="submit" disabled={saving}><Save size={15} />{saving ? "Enregistrement..." : "Enregistrer les changements"}</button></form></section><section className="content-panel profile-summary-panel"><div className="section-heading"><div><p className="section-kicker">Préférences</p><h2>Votre espace</h2></div><Sun size={18} className="section-icon" /></div><div className="theme-switcher" role="group" aria-label="Choisir le thème"><button className={theme === "light" ? "theme-option active" : "theme-option"} type="button" onClick={() => setTheme("light")}><Sun size={14} /> Clair</button><button className={theme === "dark" ? "theme-option active" : "theme-option"} type="button" onClick={() => setTheme("dark")}><Moon size={14} /> Sombre</button></div><h3 className="settings-subtitle">Vos rôles et droits</h3><div className="permission-list">{roles.map((role) => <span key={role.id}>{role.nom}</span>)}</div><p className="policy-note">Les droits d’accès sont chargés depuis Supabase. La photo et les coordonnées ne modifient jamais vos permissions.</p></section></div>
+    <section className="content-panel security-panel"><div className="section-heading"><div><p className="section-kicker">Sécurité du compte</p><h2>Appareils connectés</h2><p className="panel-description">Révoquez un appareil pour arrêter ses notifications Push et retirer sa confiance.</p></div><ShieldCheck size={19} className="section-icon" /></div>{devices.length === 0 ? <p className="empty">Aucun appareil enregistré. Activez les notifications sur votre navigateur pour l’ajouter.</p> : <div className="device-list">{devices.map((device) => <article className={device.revoked_at ? "device-item is-revoked" : "device-item"} key={device.id}><MonitorSmartphone size={20} /><div><strong>{device.label}</strong><small>Dernière activité : {new Date(device.last_seen_at).toLocaleString("fr-FR")}</small></div><span>{device.revoked_at ? "Révoqué" : "Actif"}</span>{!device.revoked_at && <button className="icon-button" type="button" title="Révoquer cet appareil" onClick={() => revokeDevice(device)}><Trash2 size={15} /></button>}</article>)}</div>}</section>
   </div>;
 }

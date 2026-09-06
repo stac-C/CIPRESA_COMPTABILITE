@@ -1410,6 +1410,34 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 );
 
 
+CREATE TABLE IF NOT EXISTS public.push_subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    endpoint TEXT NOT NULL UNIQUE,
+    device_key TEXT,
+    subscription JSONB NOT NULL,
+    user_agent TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.push_subscriptions
+    ADD COLUMN IF NOT EXISTS device_key TEXT;
+
+
+CREATE TABLE IF NOT EXISTS public.user_devices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    device_key TEXT NOT NULL,
+    label TEXT NOT NULL,
+    user_agent TEXT,
+    last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    revoked_at TIMESTAMPTZ,
+    UNIQUE(user_id, device_key)
+);
+
+
 -- ============================================================
 -- 18. INDEX
 -- ============================================================
@@ -2052,6 +2080,8 @@ ALTER TABLE public.lignes_rapports ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_devices ENABLE ROW LEVEL SECURITY;
 
 
 -- Rend la migration rejouable sans laisser d'anciennes policies bloquer le script.
@@ -2558,6 +2588,18 @@ WITH CHECK (
     user_id = auth.uid()
 );
 
+CREATE POLICY "push_subscriptions_own"
+ON public.push_subscriptions
+FOR ALL TO authenticated
+USING (user_id = auth.uid())
+WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "user_devices_own"
+ON public.user_devices
+FOR ALL TO authenticated
+USING (user_id = auth.uid())
+WITH CHECK (user_id = auth.uid());
+
 
 -- ============================================================
 -- 38. GRANTS
@@ -2822,3 +2864,4 @@ END $$;
 -- ============================================================
 
 COMMIT;
+
