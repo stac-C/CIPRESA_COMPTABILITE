@@ -540,7 +540,7 @@ body {
 .settings-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; margin-top: 20px; }
 .settings-form label { display: grid; gap: 5px; color: #526987; font-size: .7rem; }
 .settings-form .field-hint { color: #8290a2; font-size: .6rem; font-weight: 400; line-height: 1.35; }
-.settings-form input { padding: 10px 11px; border: 1px solid #d5dce6; border-radius: 4px; color: #1d2e4d; font: inherit; font-size: .78rem; }
+.settings-form input, .settings-form select { padding: 10px 11px; border: 1px solid #d5dce6; border-radius: 4px; color: #1d2e4d; background: #fff; font: inherit; font-size: .78rem; }
 .settings-form input:focus { outline: 0; border-color: #5d86bc; box-shadow: 0 0 0 3px rgba(46,117,182,.12); }
 .settings-form button { grid-column: 1 / -1; justify-self: start; }
 .profile-summary-panel { align-self: start; }

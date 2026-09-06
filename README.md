@@ -1,95 +1,153 @@
-# Notifications Push et appareils
+# COMPTA-CIPRESA
 
-Le site utilise `public/sw.js` pour recevoir les notifications même lorsque l’onglet est fermé. Pour activer l’envoi hors ligne dans Supabase :
+Application de gestion comptable et commerciale construite avec React, Vite et Supabase. Elle fournit un espace de travail adapte aux roles de l'entreprise: clients, fournisseurs, achats, ventes, facturation, stock, comptabilite, rapports et administration.
 
-1. Générer une paire de clés VAPID et placer la clé publique dans `VITE_VAPID_PUBLIC_KEY`.
-2. Déployer `supabase/functions/send-push-notification`.
-3. Ajouter dans les secrets de la fonction `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` et `VAPID_SUBJECT`.
-4. Créer un Database Webhook Supabase sur `public.notifications`, événement `INSERT`, qui appelle cette fonction.
-5. Exécuter `BD_SUPABASE.sql` pour créer les tables, les policies RLS et la publication Realtime.
+## Fonctionnalites
 
-Les appareils et abonnements Push sont isolés par `user_id`. La révocation depuis Profil désactive l’appareil et supprime son abonnement Push. Le navigateur doit avoir reçu l’autorisation de notifications ; iOS nécessite l’installation du site sur l’écran d’accueil pour le Push Web.
-# COMPTA-CIPRESA — App React
+- Authentification Supabase: connexion, inscription et reinitialisation du mot de passe.
+- Profils utilisateurs avec coordonnees, photo, theme clair/sombre et appareils connectes.
+- Creation d'un compte utilisateur par un administrateur depuis son profil.
+- Attribution d'un role initial lors de la creation d'un utilisateur.
+- Tableau de bord adapte aux roles `ADMIN`, `GERANT`, `COMPTABLE`, `AGENT_COMMERCIAL`, `MAGASINIER` et `CONSULTANT`.
+- Gestion des clients, fournisseurs, achats, ventes, factures, produits et projets.
+- Espaces comptables pour les ecritures, bilans et rapports financiers.
+- Permissions et acces controles par les roles Supabase et les policies RLS.
+- Notifications temps reel et notifications Push Web.
+- Previsualisation PDF pour les documents concernes.
+- Fenetres de confirmation centrees, au premier plan, avec fond floute et fermeture au clic exterieur.
 
-Application React (Vite + JavaScript) connectée à la base Supabase
-**COMPTA-CIPRESA**, avec authentification et un tableau de bord de
-démarrage (clients, factures, comptes de trésorerie).
+## Prerequis
 
-## 1. Installer les dépendances
+- Node.js 18 ou plus recent.
+- Un projet Supabase.
+- Supabase CLI pour deployer les Edge Functions et les migrations manuellement.
+
+## Installation locale
 
 ```bash
 npm install
-```
-
-## 2. Configurer la connexion à Supabase
-
-```bash
-cp .env.example .env
-```
-
-Puis complète `.env` :
-
-```
-VITE_SUPABASE_URL=https://xivropjvahlnecoyfjst.supabase.co
-VITE_SUPABASE_ANON_KEY=<ta clé publique>
-```
-
-La clé publique (anon / publishable) se récupère dans le tableau de
-bord Supabase : **Project Settings → API → Project API keys**. Elle
-n'a pas pu être récupérée automatiquement ici (autorisation
-requise) — copie-la manuellement.
-
-## 3. Lancer l'application en développement
-
-```bash
+copy .env.example .env
 npm run dev
 ```
 
-L'app est servie sur `http://localhost:5173`.
+L'application est disponible sur `http://localhost:5173`.
 
-## 4. Connexion et inscription
+Pour produire le bundle de production:
 
-L'écran permet de se connecter avec `supabase.auth.signInWithPassword`,
-de créer un compte avec `supabase.auth.signUp` et de demander un lien
-de réinitialisation du mot de passe. Si la confirmation d'adresse est
-activée dans Supabase, l'utilisateur doit cliquer sur le lien reçu avant
-sa première connexion.
-
-Le trigger `on_auth_user_created` du fichier `BD_SUPABASE.sql` crée
-automatiquement le profil associé à partir des champs d'inscription
-`nom`, `prenom` et `telephone`. Vérifie que ce script a bien été exécuté
-dans le projet Supabase.
-
-## Structure du projet
-
+```bash
+npm run build
+npm run preview
 ```
+
+## Variables d'environnement
+
+Le fichier `.env` a la racine doit contenir les variables publiques utilisees par Vite:
+
+```env
+VITE_SUPABASE_URL=https://votre-projet.supabase.co
+VITE_SUPABASE_ANON_KEY=votre-cle-anon-ou-publishable
+VITE_VAPID_PUBLIC_KEY=votre-cle-publique-vapid
+```
+
+La cle `VITE_SUPABASE_ANON_KEY` peut etre exposee dans le navigateur. Ne placez jamais une cle `service_role` ou une cle privee VAPID dans `.env` cote frontend.
+
+## Initialiser Supabase
+
+Le schema complet se trouve dans [BD_SUPABASE.sql](BD_SUPABASE.sql). Il cree notamment:
+
+- `profiles`, `roles`, `permissions`, `user_roles` et `role_permissions`;
+- les tables metier et les journaux d'audit;
+- les policies Row Level Security;
+- le trigger `on_auth_user_created`, qui cree automatiquement le profil apres creation d'un utilisateur Auth;
+- la publication Realtime pour les notifications.
+
+Executez le script dans l'editeur SQL Supabase, puis verifiez que les roles, permissions et attributions initiales sont presents.
+
+## Creer un utilisateur depuis le profil administrateur
+
+Un administrateur voit la section **Creer un utilisateur** dans son profil. Le formulaire demande:
+
+- prenom et nom;
+- adresse email;
+- telephone facultatif;
+- mot de passe et confirmation;
+- role initial.
+
+La creation est realisee par l'Edge Function `admin-create-user`. Elle verifie le JWT de l'appelant et son role `ADMIN`, cree l'utilisateur via l'API Auth avec email confirme, puis attribue le role selectionne. Le mot de passe ne passe jamais dans `profiles` et n'est jamais enregistre par l'application.
+
+Configurer le secret serveur dans Supabase, puis deployer la fonction:
+
+```bash
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY="votre-cle-service-role"
+supabase functions deploy admin-create-user
+```
+
+La fonction utilise aussi automatiquement `SUPABASE_URL`, fourni par l'environnement Supabase. Ne copiez jamais `SUPABASE_SERVICE_ROLE_KEY` dans le frontend.
+
+## Notifications Push
+
+Le service worker [public/sw.js](public/sw.js) permet de recevoir des notifications lorsque l'onglet n'est plus actif.
+
+1. Generer une paire de cles VAPID.
+2. Placer la cle publique dans `VITE_VAPID_PUBLIC_KEY`.
+3. Configurer les secrets de la fonction:
+
+```bash
+supabase secrets set VAPID_PUBLIC_KEY="votre-cle-publique"
+supabase secrets set VAPID_PRIVATE_KEY="votre-cle-privee"
+supabase secrets set VAPID_SUBJECT="mailto:support@cipresa.com"
+```
+
+4. Deployer la fonction d'envoi:
+
+```bash
+supabase functions deploy send-push-notification
+```
+
+5. Creer dans Supabase un Database Webhook sur `public.notifications`, evenement `INSERT`, qui appelle `send-push-notification`.
+
+Le navigateur doit autoriser les notifications. Sur iOS, l'application doit etre installee sur l'ecran d'accueil pour beneficier du Push Web.
+
+## Modales et notifications dans l'interface
+
+- Les confirmations et previsualisations utilisent `.modal-backdrop`.
+- Le backdrop est fixe, centre, au-dessus du contenu et applique `backdrop-filter: blur(...)`.
+- Un clic sur le fond exterieur ferme la fenetre.
+- Un clic a l'interieur de la fenetre est conserve et n'entraine pas sa fermeture.
+- Les popovers du centre de notifications et de l'aide se ferment lorsqu'un clic est effectue hors de `.platform-tools`.
+
+## Architecture principale
+
+```text
 src/
-  lib/supabaseClient.js     → client Supabase (URL + clé depuis .env)
-  context/AuthContext.jsx   → session, profil utilisateur, signIn/signOut
-  pages/Login.jsx           → écran de connexion
-  pages/Dashboard.jsx       → tableau de bord (stats + dernières factures)
-  components/StatCard.jsx   → carte de statistique réutilisable
-  components/FacturesTable.jsx → tableau des factures
-  index.css                 → styles de l'application
+  App.jsx                         Point d'entree et controle de session
+  context/AuthContext.jsx         Session, profil, roles et permissions
+  pages/Login.jsx                 Connexion et inscription
+  pages/Dashboard.jsx             Navigation et rendu des espaces
+  components/PersonalSettings.jsx Profil, securite et creation admin
+  components/NotificationCenter.jsx Notifications temps reel et Push
+  components/resources/           Workspaces CRUD generiques
+  components/dashboards/          Tableaux de bord par role
+  hooks/                          Donnees dashboard, Realtime et Push
+  lib/supabaseClient.js           Client Supabase navigateur
+  index.css                       Styles generaux
+  components/PageStyles.css       Styles des modules et modales
+supabase/functions/
+  admin-create-user/              Creation securisee des comptes Auth
+  send-push-notification/         Envoi des notifications Push
 ```
 
-## Ce que le tableau de bord affiche déjà
+## Controle qualite
 
-- Nombre total de clients
-- Nombre total de factures
-- Reste à payer cumulé sur les 10 dernières factures
-- Nombre de comptes de trésorerie (caisse / banque / mobile money)
-- Table des 10 dernières factures avec statut (payée, en retard, etc.)
+```bash
+npm run build
+```
 
-## Pour aller plus loin
+Le build peut signaler que le bundle JavaScript depasse 500 kB apres minification. Il s'agit actuellement d'un avertissement Vite, pas d'une erreur de compilation.
 
-Le schéma Supabase couvre bien plus que ce point de départ :
-ventes, achats, fournisseurs, écritures comptables, journaux,
-balances, bilans, rapports financiers, audit_logs, notifications.
-Chaque nouvelle page suit le même schéma que `Dashboard.jsx` :
-une requête `supabase.from("table").select(...)`, un composant
-d'affichage dédié.
+## Securite
 
-⚠️ Toutes les tables ont `RLS` (Row Level Security) activé : les
-requêtes ne renverront des données que si des policies adaptées au
-rôle de l'utilisateur connecté existent côté Supabase.
+- Toutes les tables applicatives doivent rester protegees par RLS.
+- Les droits d'acces sont controles cote interface pour l'ergonomie et cote Supabase pour la securite reelle.
+- Les operations privilegiees, notamment la creation d'utilisateurs Auth, doivent passer par une Edge Function controlee.
+- Ne jamais committer `.env`, les cles privees VAPID ou `SUPABASE_SERVICE_ROLE_KEY`.

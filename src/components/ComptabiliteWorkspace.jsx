@@ -18,12 +18,12 @@ function Feedback({ message, onClose }) {
 
 function SuccessDialog({ message, onClose = () => {} }) {
   if (!message) return null;
-  return <div className="modal-backdrop" role="presentation"><div className="success-dialog" role="dialog" aria-modal="true" aria-label="Opération réussie"><span className="success-icon">✓</span><h2>Opération réussie</h2><p>{message}</p><button className="primary-button" type="button" onClick={onClose}>Continuer</button></div></div>;
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className="success-dialog" role="dialog" aria-modal="true" aria-label="Opération réussie"><span className="success-icon">✓</span><h2>Opération réussie</h2><p>{message}</p><button className="primary-button" type="button" onClick={onClose}>Continuer</button></div></div>;
 }
 
 function ReportPreview({ report, onClose }) {
   if (!report) return null;
-  return <div className="modal-backdrop" role="presentation"><div className="pdf-modal" role="dialog" aria-modal="true" aria-label="Prévisualisation du rapport"><div className="section-heading"><div><p className="section-kicker">Document généré</p><h2>Prévisualisation du rapport</h2></div><button className="link-button" type="button" onClick={onClose}>Fermer</button></div><PDFViewer className="pdf-viewer"><RapportPDF report={report} /></PDFViewer></div></div>;
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className="pdf-modal" role="dialog" aria-modal="true" aria-label="Prévisualisation du rapport"><div className="section-heading"><div><p className="section-kicker">Document généré</p><h2>Prévisualisation du rapport</h2></div><button className="link-button" type="button" onClick={onClose}>Fermer</button></div><PDFViewer className="pdf-viewer"><RapportPDF report={report} /></PDFViewer></div></div>;
 }
 
 function Field({ label, hint, children }) {

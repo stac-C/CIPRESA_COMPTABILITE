@@ -32,7 +32,7 @@ function normalizePayload(payload, fields) {
 
 function SuccessDialog({ message, onClose }) {
   if (!message) return null;
-  return <div className="modal-backdrop" role="presentation"><div className="success-dialog" role="dialog" aria-modal="true" aria-label="Opération réussie"><span className="success-icon">✓</span><h2>Opération réussie</h2><p>{message}</p><button className="primary-button" type="button" onClick={onClose}>Continuer</button></div></div>;
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className="success-dialog" role="dialog" aria-modal="true" aria-label="Opération réussie"><span className="success-icon">✓</span><h2>Opération réussie</h2><p>{message}</p><button className="primary-button" type="button" onClick={onClose}>Continuer</button></div></div>;
 }
 
 export default function ResourceWorkspace({ resource, can }) {

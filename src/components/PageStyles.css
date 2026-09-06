@@ -43,7 +43,7 @@
 .table-pagination, .form-actions { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
 .table-actions { display: flex; gap: 10px; }
 .link-button.danger { color: var(--danger); }
-.modal-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px; background: rgba(13, 45, 27, .58); }
+.modal-backdrop { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-items: center; width: 100vw; height: 100dvh; padding: 24px; background: linear-gradient(0deg, rgba(7, 37, 62, .62), rgba(7, 37, 62, .62)); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(36px); isolation: isolate; }
 .pdf-modal { width: min(900px, 100%); max-height: 94vh; overflow: auto; padding: 18px; border-radius: 8px; background: #fff; box-shadow: 0 20px 60px rgba(10, 52, 27, .3); }
 .pdf-viewer { width: 100%; height: min(78vh, 900px); border: 1px solid #d4e6d9; }
 .success-dialog { width: min(420px, 100%); padding: 28px; border-radius: 8px; background: #fff; text-align: center; box-shadow: 0 20px 60px rgba(10, 52, 27, .3); }
@@ -177,7 +177,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 [data-theme="dark"] .quick-action, [data-theme="dark"] .admin-operation, [data-theme="dark"] .task-item, [data-theme="dark"] .role-card { border-color: #31513f; background: #1b2d23; color: #cce4d2; }
 [data-theme="dark"] .quick-action:hover, [data-theme="dark"] .admin-operation:hover:not(:disabled) { border-color: #66a578; background: #254431; }
 [data-theme="dark"] .quick-action small, [data-theme="dark"] .admin-operation small, [data-theme="dark"] .role-card p { color: #91ad9b; }
-[data-theme="dark"] .accounting-form input, [data-theme="dark"] .accounting-form select, [data-theme="dark"] .accounting-field textarea, [data-theme="dark"] .settings-form input { border-color: #365542; background: #132019; color: #e2f0e5; }
+[data-theme="dark"] .accounting-form input, [data-theme="dark"] .accounting-form select, [data-theme="dark"] .accounting-field textarea, [data-theme="dark"] .settings-form input, [data-theme="dark"] .settings-form select { border-color: #365542; background: #132019; color: #e2f0e5; }
 [data-theme="dark"] .data-table th { color: #9bc8a7; border-color: #365542; }
 [data-theme="dark"] .data-table td { color: #c1d8c7; border-color: #294435; }
 [data-theme="dark"] .theme-switcher { border-color: #365542; background: #132019; }
