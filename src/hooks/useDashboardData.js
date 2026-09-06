@@ -5,16 +5,21 @@ import { subMonths } from "date-fns";
 
 async function fetchDashboardData(isAccountingUser) {
   if (isAccountingUser) {
-    const [entries, balances, reports] = await Promise.all([
+    const sixMonthsAgo = subMonths(new Date(), 6).toISOString().slice(0, 10);
+    const [entries, balances, reports, ventes, factures] = await Promise.all([
       supabase.from("ecritures_comptables").select("*", { count: "exact", head: true }),
       supabase.from("bilans").select("*", { count: "exact", head: true }),
       supabase.from("rapports_financiers").select("*", { count: "exact", head: true }),
+      supabase.from("ventes").select("id, total, statut, date_vente").gte("date_vente", sixMonthsAgo).order("date_vente", { ascending: true }).limit(500),
+      supabase.from("factures").select("id, numero, date_facture, montant_ttc, reste_a_payer, statut").gte("date_facture", sixMonthsAgo).order("date_facture", { ascending: false }).limit(500),
     ]);
+    const resteAPayer = (factures.data || []).reduce((sum, invoice) => sum.add(invoice.reste_a_payer || 0), money(0));
+    const chiffreAffaires = (ventes.data || []).reduce((sum, sale) => sum.add(sale.total || 0), money(0));
     return {
-      stats: { clients: 0, fournisseurs: 0, projets: 0, ventes: 0, achats: 0, produits: 0, factures: 0, chiffreAffaires: 0, resteAPayer: 0, comptes: 0, ecritures: entries.count || 0, bilans: balances.count || 0, rapports: reports.count || 0 },
-      factures: [],
-      ventes: [],
-      metricErrors: [entries, balances, reports].filter(({ error }) => error).map(({ error }) => error.message),
+      stats: { clients: 0, fournisseurs: 0, projets: 0, ventes: ventes.data?.length || 0, achats: 0, produits: 0, factures: factures.data?.length || 0, chiffreAffaires: chiffreAffaires.toNumber(), resteAPayer: resteAPayer.toNumber(), comptes: 0, ecritures: entries.count || 0, bilans: balances.count || 0, rapports: reports.count || 0 },
+      factures: factures.data || [],
+      ventes: ventes.data || [],
+      metricErrors: [entries, balances, reports, ventes, factures].filter(({ error }) => error).map(({ error }) => error.message),
     };
   }
 

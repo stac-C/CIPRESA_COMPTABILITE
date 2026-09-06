@@ -21,6 +21,20 @@ function generatedNumber(prefix) {
   return `${prefix}-${date}-${randomPart}`;
 }
 
+function normalizePayload(payload, fields) {
+  const normalized = { ...payload };
+  fields.forEach((field) => {
+    if (normalized[field.name] !== "") return;
+    if (["date", "number"].includes(field.type) || field.relation) normalized[field.name] = null;
+  });
+  return normalized;
+}
+
+function SuccessDialog({ message, onClose }) {
+  if (!message) return null;
+  return <div className="modal-backdrop" role="presentation"><div className="success-dialog" role="dialog" aria-modal="true" aria-label="Opération réussie"><span className="success-icon">✓</span><h2>Opération réussie</h2><p>{message}</p><button className="primary-button" type="button" onClick={onClose}>Continuer</button></div></div>;
+}
+
 export default function ResourceWorkspace({ resource, can }) {
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(() => emptyForm(resource.fields));
@@ -51,9 +65,10 @@ export default function ResourceWorkspace({ resource, can }) {
     loadRows();
     const relations = resource.fields.filter((field) => field.relation);
     Promise.all(relations.map(async (field) => {
-      const { data } = await supabase.from(field.relation.table).select(field.relation.columns.join(", ")).order(field.relation.label);
+      const { data, error: relationError } = await supabase.from(field.relation.table).select(field.relation.columns.join(", ")).order(field.relation.label);
+      if (relationError) throw new Error(`${field.label}: ${relationError.message}`);
       return [field.name, data || []];
-    })).then((entries) => setRelationOptions(Object.fromEntries(entries)));
+    })).then((entries) => setRelationOptions(Object.fromEntries(entries))).catch((relationError) => setError(relationError.message));
   }, [resource]);
 
   function updateField(event) {
@@ -88,7 +103,7 @@ export default function ResourceWorkspace({ resource, can }) {
     setSaving(true);
     setError(null);
     setMessage(null);
-    const payload = { ...form };
+    const payload = normalizePayload(form, resource.fields);
     if (!editingId && resource.generatedNumber) payload[resource.generatedNumber.field] = generatedNumber(resource.generatedNumber.prefix);
     const request = editingId
       ? supabase.from(resource.table).update(payload).eq("id", editingId)
@@ -135,7 +150,7 @@ export default function ResourceWorkspace({ resource, can }) {
       )}
       <section className="content-panel">
         <div className="section-heading"><div><p className="section-kicker">Données Supabase · {resource.readPermission}</p><h2>{resource.title}</h2><p className="panel-description">{resource.description}</p></div><span className="record-count">{rows.length} affiché{rows.length > 1 ? "s" : ""}</span></div>
-        {message && <p className={`message ${message.type}`}>{message.text}</p>}
+        {message?.type === "success" ? <SuccessDialog message={message.text} onClose={() => setMessage(null)} /> : message && <p className={`message ${message.type}`}>{message.text}</p>}
         {error && <p className="message error">Erreur Supabase : {error}</p>}
         {loading ? <p className="empty">Chargement...</p> : rows.length === 0 ? <p className="empty">Aucune donnée accessible pour ce rôle.</p> : <div className="table-scroll"><table className="data-table"><thead><tr>{resource.columns.filter((column) => column !== "id").map((column) => <th key={column}>{titleForColumn(column)}</th>)}{resource.derivedColumns?.map((column) => <th key={column.name}>{column.label}</th>)}{(canUpdate || canDelete) && <th>Opérations</th>}</tr></thead><tbody>{rows.map((row) => <tr key={row.id}>{resource.columns.filter((column) => column !== "id").map((column) => <td key={column}>{displayValue(row[column])}</td>)}{resource.derivedColumns?.map((column) => <td key={column.name}>{displayValue(column.getValue(row))}</td>)}{(canUpdate || canDelete) && <td className="table-actions">{canUpdate && <button className="link-button" type="button" onClick={() => startEdit(row)}>Modifier</button>}{canDelete && <button className="link-button danger" type="button" onClick={() => remove(row)}>Supprimer</button>}</td>}</tr>)}</tbody></table></div>}
       </section>

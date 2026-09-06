@@ -18,22 +18,60 @@ import { useDashboardData } from "../hooks/useDashboardData";
 import DashboardCharts from "../components/DashboardCharts";
 import FacturesDataTable from "../components/FacturesDataTable";
 import { useTheme } from "../context/ThemeContext";
+import { BookOpen, BriefcaseBusiness, Boxes, Contact, FileBarChart, Landmark, LayoutDashboard, Receipt, Search, Settings, ShoppingCart, Truck, Users, WalletCards } from "lucide-react";
 
 const NAV_ITEMS = [
-  { id: "dashboard", label: "Tableau de bord", icon: "📊" },
-  { id: "clients", label: "Clients", icon: "♧", permission: "CLIENT_READ" },
-  { id: "fournisseurs", label: "Fournisseurs", icon: "▤", permission: "ACHAT_READ" },
-  { id: "achats", label: "Achats", icon: "◫", permission: "ACHAT_READ" },
-  { id: "projets", label: "Projets", icon: "⌘", roles: ["ADMIN", "GERANT"] },
-  { id: "ventes", label: "Ventes", icon: "◈", permission: "VENTE_READ" },
-  { id: "facturation", label: "Facturation", icon: "▣", permission: "VENTE_READ" },
-  { id: "inventaire", label: "Inventaire", icon: "▱", permission: "STOCK_READ" },
-  { id: "comptabilite", label: "Comptabilité", icon: "🪨", permission: "COMPTA_READ" },
-  { id: "bilans", label: "Bilans", icon: "📖", permission: "BILAN_READ" },
-  { id: "rapports", label: "Rapports", icon: "🛄", permission: "RAPPORT_READ" },
-  { id: "configuration", label: "Configuration", icon: "🏡", roles: ["ADMIN"] },
-  { id: "profile", label: "Mon profil", icon: "⚙️" },
+  { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+  { id: "clients", label: "Clients", icon: Users, permission: "CLIENT_READ" },
+  { id: "fournisseurs", label: "Fournisseurs", icon: Truck, permission: "ACHAT_READ" },
+  { id: "achats", label: "Achats", icon: ShoppingCart, permission: "ACHAT_READ" },
+  { id: "projets", label: "Projets", icon: BriefcaseBusiness, roles: ["ADMIN", "GERANT"] },
+  { id: "ventes", label: "Ventes", icon: WalletCards, permission: "VENTE_READ" },
+  { id: "facturation", label: "Facturation", icon: Receipt, permission: "VENTE_READ" },
+  { id: "inventaire", label: "Inventaire", icon: Boxes, permission: "STOCK_READ" },
+  { id: "comptabilite", label: "Comptabilité", icon: Landmark, permission: "COMPTA_READ" },
+  { id: "bilans", label: "Bilans", icon: BookOpen, permission: "BILAN_READ" },
+  { id: "rapports", label: "Rapports", icon: FileBarChart, permission: "RAPPORT_READ" },
+  { id: "configuration", label: "Configuration", icon: Settings, roles: ["ADMIN"] },
+  { id: "profile", label: "Mon profil", icon: Contact },
 ];
+
+const SEARCH_CONFIG = [
+  ["clients", "Clients", "CLIENT_READ", ["id", "code", "nom", "email", "telephone"]],
+  ["fournisseurs", "Fournisseurs", "ACHAT_READ", ["id", "code", "nom", "email", "telephone"]],
+  ["achats", "Achats", "ACHAT_READ", ["id", "numero", "fournisseur_id"]],
+  ["projets", "Projets", "CLIENT_READ", ["id", "reference", "nom", "ville"]],
+  ["ventes", "Ventes", "VENTE_READ", ["id", "numero", "client_id"]],
+  ["facturation", "Factures", "VENTE_READ", ["id", "numero", "client_id"]],
+  ["inventaire", "Produits", "STOCK_READ", ["id", "reference", "nom"]],
+  ["rapports", "Rapports", "RAPPORT_READ", ["id", "reference", "nom"]],
+];
+
+function GlobalSearch({ can, hasRole, onNavigate }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    const term = query.trim();
+    if (term.length < 2) { setResults([]); return undefined; }
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      setSearching(true);
+      const accessible = SEARCH_CONFIG.filter(([, , permission]) => canAccessTab(permission === "CLIENT_READ" ? "clients" : permission === "ACHAT_READ" ? "fournisseurs" : permission === "VENTE_READ" ? "ventes" : permission === "STOCK_READ" ? "inventaire" : "rapports", { can, hasRole }) || can(permission));
+      const found = (await Promise.all(accessible.map(async ([tab, label, , columns]) => {
+        const searchable = columns.filter((column) => column !== "id");
+        const filter = searchable.map((column) => `${column}.ilike.%${term.replace(/[%(),]/g, "")}%`).join(",");
+        const { data } = await supabase.from(tab === "facturation" ? "factures" : tab).select(columns.join(", ")).or(filter).limit(5);
+        return (data || []).map((row) => ({ tab, label, title: row.nom || row.numero || row.reference || row.code, detail: row.email || row.telephone || row.ville || row.statut || "" }));
+      }))).flat();
+      if (active) { setResults(found); setSearching(false); }
+    }, 250);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [can, hasRole, query]);
+
+  return <div className="global-search"><Search size={16} aria-hidden="true" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher dans vos accès..." aria-label="Rechercher dans les données autorisées" />{query.trim().length >= 2 && <div className="search-results" role="listbox">{searching ? <p className="empty">Recherche...</p> : results.length === 0 ? <p className="empty">Aucun résultat accessible.</p> : results.map((result, index) => <button type="button" key={`${result.tab}-${result.title}-${index}`} onClick={() => { onNavigate(result.tab); setQuery(""); }}><strong>{result.title}</strong><span>{result.label} · {result.detail}</span></button>)}</div>}</div>;
+}
 
 const RESOURCE_CONFIG = {
   clients: {
@@ -273,13 +311,14 @@ function AdminAccessView({ roles, rolePermissions, can }) {
     if (!selectedUserId || !selectedRoleIds.length || !can("USER_MANAGE")) return;
     setSavingUser(selectedUserId);
     setError(null);
-    const { data, error: insertError } = await supabase.from("user_roles").insert(selectedRoleIds.map((roleId) => ({ user_id: selectedUserId, role_id: roleId }))).select("user_id, role_id, role:roles(code, nom)");
+    const { error: insertError } = await supabase.from("user_roles").insert(selectedRoleIds.map((roleId) => ({ user_id: selectedUserId, role_id: roleId })));
     setSavingUser(null);
     if (insertError) {
       setError(`Attribution refusée par Supabase/RLS : ${insertError.message}`);
       return;
     }
-    setUserRoles((current) => [...current, ...(data || [])]);
+    const assignedRoles = selectedRoleIds.map((roleId) => ({ user_id: selectedUserId, role_id: roleId, role: availableRoles.find((role) => role.id === roleId) || null }));
+    setUserRoles((current) => [...current, ...assignedRoles]);
     setSelectedRoleIds([]);
   }
 
@@ -363,7 +402,8 @@ export default function Dashboard() {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar"><div className="brand"><span className="brand-mark-small">C</span><div><strong>CIPRESA</strong><small>Plateforme Comptable</small></div></div><nav aria-label="Navigation principale">{visibleNav.map((item) => <button className={activeTab === item.id ? "nav-item active" : "nav-item"} type="button" aria-current={activeTab === item.id ? "page" : undefined} key={item.id} onClick={() => navigateToTab(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}</nav><div className="sidebar-user"><span className="avatar">{(profile?.prenom || profile?.nom || "U").charAt(0).toUpperCase()}</span><div><strong>{`${profile?.prenom || ""} ${profile?.nom || ""}`.trim() || "Utilisateur"}</strong><small>{roles.map(({ nom }) => nom).join(" · ")}</small></div></div></aside>
+      <GlobalSearch can={can} hasRole={hasRole} onNavigate={navigateToTab} />
+      <aside className="sidebar"><div className="brand"><span className="brand-mark-small">C</span><div><strong>CIPRESA</strong><small>Plateforme Comptable</small></div></div><nav aria-label="Navigation principale">{visibleNav.map((item) => <button className={activeTab === item.id ? "nav-item active" : "nav-item"} type="button" aria-current={activeTab === item.id ? "page" : undefined} key={item.id} onClick={() => navigateToTab(item.id)}><item.icon className="nav-icon" aria-hidden="true" />{item.label}</button>)}</nav><div className="sidebar-user"><span className="avatar">{(profile?.prenom || profile?.nom || "U").charAt(0).toUpperCase()}</span><div><strong>{`${profile?.prenom || ""} ${profile?.nom || ""}`.trim() || "Utilisateur"}</strong><small>{roles.map(({ nom }) => nom).join(" · ")}</small></div></div></aside>
       <main className="main-area"><header className="topbar"><div className="search-box">⌕ <span>Rechercher...</span></div><div className="topbar-actions"><button className="icon-button" title="Notifications">♧</button><button className="icon-button" title="Aide">?</button><button className="icon-button theme-toggle" type="button" title={theme === "dark" ? "Activer le mode clair" : "Activer le mode sombre"} aria-label={theme === "dark" ? "Activer le mode clair" : "Activer le mode sombre"} onClick={toggleTheme}>{theme === "dark" ? "☼" : "◐"}</button><button className="profile-button" onClick={signOut}>Profil <span className="avatar avatar-small">{(profile?.prenom || profile?.nom || "U").charAt(0).toUpperCase()}</span></button></div></header><div className="page-content"><div className="page-title"><div><p className="section-kicker">Données en temps réel · v_tableau_bord</p><h1>{activeTab === "dashboard" ? "Aperçu financier" : NAV_ITEMS.find((item) => item.id === activeTab)?.label}</h1><p className="subtitle">{roles.map(({ nom }) => nom).join(", ")} · {permissions.length} permission{permissions.length > 1 ? "s" : ""}</p></div><div className="page-actions"><button className="outline-button">▣ Ce mois</button>{can("RAPPORT_CREATE") && <button className="primary-button">Générer Rapport</button>}</div></div>{renderContent()}</div></main>
     </div>
   );

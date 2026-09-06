@@ -29,7 +29,7 @@ export default function FacturePDF({ facture, lignes = [] }) {
         </View>
         <View style={styles.total}><Text>Total TTC : {facture.montant_ttc} XAF</Text></View>
         <View style={styles.total}><Text>Reste à payer : {facture.reste_a_payer} XAF</Text></View>
-        <Text style={styles.footer}>Merci pour votre confiance. Document généré par la plateforme CIPRESA.</Text>
+        <Text style={styles.footer}>..Merci pour votre confiance. Document généré par la plateforme CIPRESA.</Text>
       </Page>
     </Document>
   );

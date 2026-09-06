@@ -1,12 +1,29 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { PDFViewer } from "@react-pdf/renderer";
+import RapportPDF from "./RapportPDF";
 
 const EMPTY_ENTRY = { numero: "", exercice_id: "", journal_id: "", date_ecriture: new Date().toISOString().slice(0, 10), libelle: "", reference_piece: "" };
 const EMPTY_BALANCE = { exercice_id: "", total_actif: "0", total_passif: "0", resultat: "0" };
 const EMPTY_REPORT = { reference: "", nom: "", date_debut: "", date_fin: "", solde_initial: "0", total_entrees: "0", total_sorties: "0", solde_final: "0" };
 
-function Feedback({ message }) {
-  return message ? <p className={`message ${message.type}`}>{message.text}</p> : null;
+function Feedback({ message, onClose }) {
+  const [visible, setVisible] = useState(true);
+  const [previewOpen, setPreviewOpen] = useState(true);
+  useEffect(() => { setVisible(true); setPreviewOpen(true); }, [message]);
+  if (!message || !visible) return null;
+  if (message.type === "success") return <>{message.report && previewOpen && <ReportPreview report={message.report} onClose={() => setPreviewOpen(false)} />} {visible && <SuccessDialog message={message.text} onClose={() => { setVisible(false); onClose?.(); }} />}</>;
+  return <p className={`message ${message.type}`}>{message.text}</p>;
+}
+
+function SuccessDialog({ message, onClose = () => {} }) {
+  if (!message) return null;
+  return <div className="modal-backdrop" role="presentation"><div className="success-dialog" role="dialog" aria-modal="true" aria-label="Opération réussie"><span className="success-icon">✓</span><h2>Opération réussie</h2><p>{message}</p><button className="primary-button" type="button" onClick={onClose}>Continuer</button></div></div>;
+}
+
+function ReportPreview({ report, onClose }) {
+  if (!report) return null;
+  return <div className="modal-backdrop" role="presentation"><div className="pdf-modal" role="dialog" aria-modal="true" aria-label="Prévisualisation du rapport"><div className="section-heading"><div><p className="section-kicker">Document généré</p><h2>Prévisualisation du rapport</h2></div><button className="link-button" type="button" onClick={onClose}>Fermer</button></div><PDFViewer className="pdf-viewer"><RapportPDF report={report} /></PDFViewer></div></div>;
 }
 
 function Field({ label, hint, children }) {
@@ -96,7 +113,7 @@ function ReportsWorkspace({ can }) {
   async function loadData() { const result = await supabase.from("rapports_financiers").select("id, reference, nom, date_debut, date_fin, solde_initial, total_entrees, total_sorties, solde_final, statut").order("created_at", { ascending: false }); setRows(result.data || []); if (result.error) setMessage({ type: "error", text: result.error.message }); }
   useEffect(() => { loadData(); }, []);
   function update(event) { setForm((current) => ({ ...current, [event.target.name]: event.target.value })); }
-  async function createReport(event) { event.preventDefault(); setMessage(null); const { error } = await supabase.from("rapports_financiers").insert({ ...form, statut: "BROUILLON" }); if (error) setMessage({ type: "error", text: error.message }); else { setMessage({ type: "success", text: "Rapport créé." }); setForm(EMPTY_REPORT); loadData(); } }
+  async function createReport(event) { event.preventDefault(); setMessage(null); const { data, error } = await supabase.from("rapports_financiers").insert({ ...form, statut: "BROUILLON" }).select("*").single(); if (error) setMessage({ type: "error", text: error.message }); else { setMessage({ type: "success", text: "Rapport créé et prêt à être prévisualisé.", report: data }); setForm(EMPTY_REPORT); loadData(); } }
   return <div className="accounting-workspace"><section className="content-panel"><WorkspaceHeader permission="RAPPORT_CREATE" title="Création d’un rapport financier" description="Définissez la période, donnez un nom explicite au rapport et saisissez les soldes de suivi." /><Feedback message={message} />{can("RAPPORT_CREATE") && <form className="accounting-form" onSubmit={createReport}><Field label="Référence du rapport" hint="Identifiant unique pour retrouver le document."><input name="reference" value={form.reference} onChange={update} placeholder="Ex. RPT-2026-001" required /></Field><Field label="Nom du rapport" hint="Intitulé lisible dans la liste des rapports."><input name="nom" value={form.nom} onChange={update} placeholder="Ex. Suivi de trésorerie annuel" required /></Field><Field label="Date de début" hint="Premier jour de la période analysée."><input type="date" name="date_debut" value={form.date_debut} onChange={update} required /></Field><Field label="Date de fin" hint="Dernier jour de la période analysée."><input type="date" name="date_fin" value={form.date_fin} onChange={update} required /></Field><Field label="Solde initial" hint="Situation au début de la période."><input type="number" name="solde_initial" value={form.solde_initial} onChange={update} step="0.01" placeholder="Ex. 500000.00" /></Field><Field label="Total des entrées" hint="Somme des recettes de la période."><input type="number" name="total_entrees" value={form.total_entrees} onChange={update} min="0" step="0.01" placeholder="Ex. 850000.00" /></Field><Field label="Total des sorties" hint="Somme des dépenses de la période."><input type="number" name="total_sorties" value={form.total_sorties} onChange={update} min="0" step="0.01" placeholder="Ex. 320000.00" /></Field><Field label="Solde final" hint="Situation à la fin de la période."><input type="number" name="solde_final" value={form.solde_final} onChange={update} step="0.01" placeholder="Ex. 1030000.00" /></Field><button className="primary-button" type="submit">Créer le rapport en brouillon</button></form>}</section><DataTable title="Rapports enregistrés" description="Consultez les rapports par période et suivez leur statut." rows={rows} columns={["reference", "nom", "date_debut", "date_fin", "solde_final", "statut"]} /></div>;
 }
 

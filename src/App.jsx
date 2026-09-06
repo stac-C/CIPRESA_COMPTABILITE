@@ -3,9 +3,9 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import { Toaster } from "sonner";
-import useRealtimeNotifications from "./hooks/useRealtimeNotifications";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "./context/ThemeContext";
+import NotificationCenter from "./components/NotificationCenter";
 
 const queryClient = new QueryClient();
 import "./index.css";
@@ -13,7 +13,6 @@ import "./components/PageStyles.css";
 
 function Gate() {
   const { session, profile, roles, accessError, accessLoading, loading, signOut } = useAuth();
-  useRealtimeNotifications(Boolean(session));
 
   if (loading) {
     return (
@@ -58,6 +57,7 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <Toaster position="top-right" richColors />
+          <NotificationCenter />
           <Gate />
         </AuthProvider>
       </ThemeProvider>

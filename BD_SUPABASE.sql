@@ -819,6 +819,9 @@ CREATE TABLE IF NOT EXISTS public.fournisseurs (
 
 );
 
+ALTER TABLE public.fournisseurs
+    ADD COLUMN IF NOT EXISTS observation TEXT;
+
 
 CREATE TABLE IF NOT EXISTS public.achats (
 
@@ -1704,6 +1707,77 @@ $$;
 
 
 -- ============================================================
+-- 26. NOTIFICATIONS AUTOMATIQUES PAR PRIVILEGE
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION public.notify_users_with_permission()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    required_permission TEXT;
+    operation_label TEXT;
+    actor_id UUID;
+    affected_id UUID;
+BEGIN
+    required_permission := CASE TG_TABLE_NAME
+        WHEN 'clients' THEN CASE TG_OP WHEN 'INSERT' THEN 'CLIENT_CREATE' ELSE 'CLIENT_UPDATE' END
+        WHEN 'fournisseurs' THEN CASE TG_OP WHEN 'INSERT' THEN 'ACHAT_CREATE' ELSE 'ACHAT_UPDATE' END
+        WHEN 'achats' THEN CASE TG_OP WHEN 'INSERT' THEN 'ACHAT_CREATE' ELSE 'ACHAT_UPDATE' END
+        WHEN 'ventes' THEN CASE TG_OP WHEN 'INSERT' THEN 'VENTE_CREATE' ELSE 'VENTE_UPDATE' END
+        WHEN 'factures' THEN CASE TG_OP WHEN 'INSERT' THEN 'VENTE_CREATE' ELSE 'VENTE_UPDATE' END
+        WHEN 'produits' THEN CASE TG_OP WHEN 'INSERT' THEN 'STOCK_CREATE' ELSE 'STOCK_UPDATE' END
+        WHEN 'ecritures_comptables' THEN CASE TG_OP WHEN 'INSERT' THEN 'COMPTA_CREATE' ELSE 'COMPTA_VALIDATE' END
+        WHEN 'bilans' THEN 'BILAN_GENERATE'
+        WHEN 'rapports_financiers' THEN 'RAPPORT_CREATE'
+        ELSE NULL
+    END;
+
+    IF required_permission IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    actor_id := auth.uid();
+    operation_label := CASE TG_OP WHEN 'INSERT' THEN 'créée' WHEN 'UPDATE' THEN 'modifiée' ELSE 'traitée' END;
+
+    INSERT INTO public.notifications (user_id, type, titre, message)
+    SELECT DISTINCT ur.user_id,
+        'PLATFORM_OPERATION',
+        'Nouvelle opération accessible',
+        format('%s %s. Vous disposez de la permission %s.', initcap(replace(TG_TABLE_NAME, '_', ' ')), operation_label, required_permission)
+    FROM public.user_roles ur
+    JOIN public.role_permissions role_permission ON role_permission.role_id = ur.role_id
+    JOIN public.permissions permission ON permission.id = role_permission.permission_id
+    WHERE permission.code = required_permission
+      AND ur.user_id IS DISTINCT FROM actor_id;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_notify_clients ON public.clients;
+CREATE TRIGGER trg_notify_clients AFTER INSERT OR UPDATE ON public.clients FOR EACH ROW EXECUTE FUNCTION public.notify_users_with_permission();
+DROP TRIGGER IF EXISTS trg_notify_fournisseurs ON public.fournisseurs;
+CREATE TRIGGER trg_notify_fournisseurs AFTER INSERT OR UPDATE ON public.fournisseurs FOR EACH ROW EXECUTE FUNCTION public.notify_users_with_permission();
+DROP TRIGGER IF EXISTS trg_notify_achats ON public.achats;
+CREATE TRIGGER trg_notify_achats AFTER INSERT OR UPDATE ON public.achats FOR EACH ROW EXECUTE FUNCTION public.notify_users_with_permission();
+DROP TRIGGER IF EXISTS trg_notify_ventes ON public.ventes;
+CREATE TRIGGER trg_notify_ventes AFTER INSERT OR UPDATE ON public.ventes FOR EACH ROW EXECUTE FUNCTION public.notify_users_with_permission();
+DROP TRIGGER IF EXISTS trg_notify_factures ON public.factures;
+CREATE TRIGGER trg_notify_factures AFTER INSERT OR UPDATE ON public.factures FOR EACH ROW EXECUTE FUNCTION public.notify_users_with_permission();
+DROP TRIGGER IF EXISTS trg_notify_produits ON public.produits;
+CREATE TRIGGER trg_notify_produits AFTER INSERT OR UPDATE ON public.produits FOR EACH ROW EXECUTE FUNCTION public.notify_users_with_permission();
+DROP TRIGGER IF EXISTS trg_notify_ecritures ON public.ecritures_comptables;
+CREATE TRIGGER trg_notify_ecritures AFTER INSERT OR UPDATE ON public.ecritures_comptables FOR EACH ROW EXECUTE FUNCTION public.notify_users_with_permission();
+DROP TRIGGER IF EXISTS trg_notify_bilans ON public.bilans;
+CREATE TRIGGER trg_notify_bilans AFTER INSERT OR UPDATE ON public.bilans FOR EACH ROW EXECUTE FUNCTION public.notify_users_with_permission();
+DROP TRIGGER IF EXISTS trg_notify_rapports ON public.rapports_financiers;
+CREATE TRIGGER trg_notify_rapports AFTER INSERT OR UPDATE ON public.rapports_financiers FOR EACH ROW EXECUTE FUNCTION public.notify_users_with_permission();
+
+
+-- ============================================================
 -- 26. DONNEES INITIALES - ROLES
 -- ============================================================
 
@@ -1883,7 +1957,43 @@ ON CONFLICT DO NOTHING;
 
 
 -- ============================================================
--- 31. RLS
+-- 31. PERMISSIONS DES ROLES OPERATIONNELS ET CONSULTATION
+-- ============================================================
+
+INSERT INTO public.role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM public.roles r
+JOIN public.permissions p ON p.code IN (
+    'CLIENT_READ', 'CLIENT_CREATE', 'CLIENT_UPDATE',
+    'VENTE_READ', 'VENTE_CREATE', 'VENTE_UPDATE',
+    'ACHAT_READ',
+    'RAPPORT_READ'
+)
+WHERE r.code = 'AGENT_COMMERCIAL'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO public.role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM public.roles r
+JOIN public.permissions p ON p.code IN (
+    'STOCK_READ', 'STOCK_CREATE', 'STOCK_UPDATE'
+)
+WHERE r.code = 'MAGASINIER'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO public.role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM public.roles r
+JOIN public.permissions p ON p.code IN (
+    'CLIENT_READ', 'VENTE_READ', 'ACHAT_READ', 'STOCK_READ',
+    'COMPTA_READ', 'BILAN_READ', 'RAPPORT_READ'
+)
+WHERE r.code = 'CONSULTANT'
+ON CONFLICT DO NOTHING;
+
+
+-- ============================================================
+-- 32. RLS
 -- ============================================================
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -1944,6 +2054,26 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 
+-- Rend la migration rejouable sans laisser d'anciennes policies bloquer le script.
+DO $$
+DECLARE
+    policy_record RECORD;
+BEGIN
+    FOR policy_record IN
+        SELECT schemaname, tablename, policyname
+        FROM pg_policies
+        WHERE schemaname = 'public'
+    LOOP
+        EXECUTE format(
+            'DROP POLICY IF EXISTS %I ON %I.%I',
+            policy_record.policyname,
+            policy_record.schemaname,
+            policy_record.tablename
+        );
+    END LOOP;
+END $$;
+
+
 -- ============================================================
 -- 32. RLS - PROFILES
 -- ============================================================
@@ -1996,6 +2126,24 @@ TO authenticated
 USING (
     user_id = auth.uid()
     OR public.is_admin()
+);
+
+
+CREATE POLICY "user_roles_admin_insert"
+ON public.user_roles
+FOR INSERT
+TO authenticated
+WITH CHECK (
+    (SELECT public.is_admin())
+);
+
+
+CREATE POLICY "user_roles_admin_delete"
+ON public.user_roles
+FOR DELETE
+TO authenticated
+USING (
+    (SELECT public.is_admin())
 );
 
 
@@ -2597,6 +2745,29 @@ FROM public.bilans b
 JOIN public.exercices_comptables ec
 
     ON ec.id = b.exercice_id;
+
+
+GRANT SELECT
+ON public.vue_dashboard,
+   public.vue_factures_clients,
+   public.vue_balance_comptable,
+   public.vue_tresorerie,
+   public.vue_bilan
+TO authenticated;
+
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_publication_tables
+        WHERE pubname = 'supabase_realtime'
+          AND schemaname = 'public'
+          AND tablename = 'notifications'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+    END IF;
+END $$;
 
 
 -- ============================================================
