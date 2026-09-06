@@ -144,6 +144,10 @@ export function AuthProvider({ children }) {
     return permissions.includes(permissionCode);
   }
 
+  function updateProfile(nextProfile) {
+    setProfile(nextProfile);
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -157,6 +161,7 @@ export function AuthProvider({ children }) {
         loading,
         hasRole,
         can,
+        updateProfile,
         signIn,
         signUp,
         resetPassword,
