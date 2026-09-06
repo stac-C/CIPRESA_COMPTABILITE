@@ -5,12 +5,13 @@ import useRealtimeNotifications from "../hooks/useRealtimeNotifications";
 import usePushNotifications from "../hooks/usePushNotifications";
 
 export default function NotificationCenter() {
-  const { session, roles } = useAuth();
-  const { notifications, unreadCount, markAsRead } = useRealtimeNotifications(session?.user?.id);
-  const { supported, configured, permission, enablePush } = usePushNotifications(session?.user?.id);
+  const { session, profile, roles } = useAuth();
+  const notificationsEnabled = profile?.notifications_enabled !== false;
+  const { notifications, unreadCount, markAsRead } = useRealtimeNotifications(session?.user?.id, notificationsEnabled);
+  const { supported, configured, permission, enablePush } = usePushNotifications(session?.user?.id, notificationsEnabled);
   const [open, setOpen] = useState(null);
 
-  if (!session) return null;
+  if (!session || !notificationsEnabled) return null;
 
   return <div className="platform-tools">
     <div className="platform-tool-group">

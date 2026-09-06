@@ -50,6 +50,10 @@
 .success-icon { display: grid; place-items: center; width: 48px; height: 48px; margin: 0 auto 14px; border-radius: 50%; background: #d1efda; color: var(--accent-dark); font-size: 1.5rem; font-weight: 700; }
 .success-dialog h2 { margin: 0 0 8px; color: var(--navy); }
 .success-dialog p { margin: 0 0 20px; color: var(--grey); }
+.confirm-dialog { text-align: left; }
+.confirm-dialog .form-actions { justify-content: flex-end; }
+.danger-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 14px; border: 1px solid #efb7b2; border-radius: 4px; background: #fff5f4; color: var(--danger); font: inherit; font-size: .7rem; font-weight: 700; cursor: pointer; }
+.danger-button:hover { background: #fdecea; border-color: var(--danger); }
 .platform-tools { position: fixed; top: 10px; right: 112px; z-index: 30; display: flex; gap: 8px; }
 .global-search { position: fixed; top: 8px; left: 242px; z-index: 31; display: flex; align-items: center; gap: 8px; width: min(360px, 38vw); padding: 9px 12px; border: 1px solid #cfe4d6; border-radius: 5px; background: #f0f8f2; color: var(--accent); }
 .global-search input { width: 100%; border: 0; outline: 0; background: transparent; color: inherit; font: inherit; font-size: .78rem; }
@@ -110,6 +114,16 @@
 .device-item > span { color: var(--success); font-size: .68rem; font-weight: 700; }
 .device-item.is-revoked { opacity: .58; }
 .device-item.is-revoked > span { color: var(--danger); }
+.notification-preference { display: flex; align-items: center; gap: 10px; margin: 14px 0 18px; padding: 12px; border: 1px solid #d4e6d9; border-radius: 7px; background: #fbfefb; cursor: pointer; }
+.notification-preference > span:nth-child(2) { display: grid; flex: 1; gap: 3px; }
+.notification-preference strong { color: var(--navy); font-size: .75rem; }
+.notification-preference small { color: var(--grey); font-size: .64rem; line-height: 1.35; }
+.notification-preference input { width: 18px; height: 18px; accent-color: var(--accent); }
+.preference-icon { display: grid; place-items: center; color: var(--accent); }
+.password-form { display: grid; gap: 9px; padding-top: 14px; border-top: 1px solid #e5f0e7; }
+.password-form input { padding: 10px 11px; border: 1px solid #d5dce6; border-radius: 4px; font: inherit; font-size: .76rem; }
+.password-form button { justify-self: start; }
+.device-heading { margin-top: 22px; padding-top: 14px; border-top: 1px solid #e5f0e7; }
 .crop-modal { width: min(620px, 100%); padding: 18px; border-radius: 10px; background: #fff; box-shadow: 0 20px 60px rgba(10, 52, 27, .3); }
 .crop-modal-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
 .crop-modal-header h2 { margin: 0; color: var(--navy); font-size: 1rem; }
@@ -122,6 +136,10 @@
 [data-theme="dark"] .crop-modal-header h2 { color: #e4f3e8; }
 [data-theme="dark"] .device-item { border-color: #365542; background: #1b2d23; color: #cce4d2; }
 [data-theme="dark"] .device-item strong { color: #e4f3e8; }
+[data-theme="dark"] .notification-preference { border-color: #365542; background: #1b2d23; }
+[data-theme="dark"] .notification-preference strong { color: #e4f3e8; }
+[data-theme="dark"] .password-form, [data-theme="dark"] .device-heading { border-color: #294435; }
+[data-theme="dark"] .password-form input { border-color: #365542; background: #132019; color: #e2f0e5; }
 
 @keyframes page-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes panel-enter { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: scale(1); } }

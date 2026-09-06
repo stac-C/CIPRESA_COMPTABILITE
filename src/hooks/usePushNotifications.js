@@ -12,7 +12,7 @@ function deviceLabel() {
   return `${platform} · ${/Mobile/i.test(navigator.userAgent) ? "Mobile" : "Navigateur"}`;
 }
 
-export default function usePushNotifications(userId) {
+export default function usePushNotifications(userId, enabled = true) {
   const [permission, setPermission] = useState(typeof Notification === "undefined" ? "unsupported" : Notification.permission);
   const [supported, setSupported] = useState(false);
   const [configured, setConfigured] = useState(Boolean(import.meta.env.VITE_VAPID_PUBLIC_KEY));
@@ -24,6 +24,7 @@ export default function usePushNotifications(userId) {
       const registration = await navigator.serviceWorker.register("/sw.js");
       if (!active) return;
       setSupported(true);
+      if (!enabled) return;
       const deviceKey = `${registration.scope}:${navigator.userAgent}`;
       await supabase.from("user_devices").upsert({ user_id: userId, device_key: deviceKey, label: deviceLabel(), user_agent: navigator.userAgent, last_seen_at: new Date().toISOString(), revoked_at: null }, { onConflict: "user_id,device_key" });
       const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
@@ -34,7 +35,7 @@ export default function usePushNotifications(userId) {
     }
     register().catch(() => {});
     return () => { active = false; };
-  }, [userId]);
+  }, [userId, enabled]);
 
   async function enablePush() {
     if (!supported || typeof Notification === "undefined") return "unsupported";

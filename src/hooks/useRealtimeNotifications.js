@@ -2,11 +2,28 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "../lib/supabaseClient";
 
-export default function useRealtimeNotifications(userId) {
+function playNotificationSound() {
+  try {
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(880, context.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(660, context.currentTime + 0.14);
+    gain.gain.setValueAtTime(0.0001, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.12, context.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.18);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.2);
+  } catch {}
+}
+
+export default function useRealtimeNotifications(userId, enabled = true) {
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
-    if (!userId) {
+    if (!userId || !enabled) {
       setNotifications([]);
       return undefined;
     }
@@ -21,6 +38,7 @@ export default function useRealtimeNotifications(userId) {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, (payload) => {
         const notification = payload.new;
         setNotifications((current) => [notification, ...current].slice(0, 30));
+        playNotificationSound();
         toast.success(notification.titre || "Nouvelle notification", { description: notification.message });
         if (typeof Notification !== "undefined" && Notification.permission === "granted") new Notification(notification.titre || "CIPRESA", { body: notification.message });
       })
@@ -30,7 +48,7 @@ export default function useRealtimeNotifications(userId) {
       mounted = false;
       supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [userId, enabled]);
 
   async function markAsRead(id) {
     const { error } = await supabase.from("notifications").update({ lu: true }).eq("id", id).eq("user_id", userId);

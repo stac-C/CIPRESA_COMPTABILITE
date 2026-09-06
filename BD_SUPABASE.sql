@@ -256,12 +256,17 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     adresse TEXT,
     ville TEXT,
 
+    notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+
     actif BOOLEAN NOT NULL DEFAULT TRUE,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 
 );
+
+ALTER TABLE public.profiles
+    ADD COLUMN IF NOT EXISTS notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE;
 
 
 -- ============================================================
