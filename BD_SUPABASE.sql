@@ -1805,6 +1805,53 @@ DROP TRIGGER IF EXISTS trg_notify_rapports ON public.rapports_financiers;
 CREATE TRIGGER trg_notify_rapports AFTER INSERT OR UPDATE ON public.rapports_financiers FOR EACH ROW EXECUTE FUNCTION public.notify_users_with_permission();
 
 
+CREATE OR REPLACE FUNCTION public.notify_role_change()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    role_name TEXT;
+    actor_id UUID := auth.uid();
+BEGIN
+    SELECT nom INTO role_name FROM public.roles WHERE id = COALESCE(NEW.role_id, OLD.role_id);
+
+    INSERT INTO public.notifications (user_id, type, titre, message)
+    SELECT p.id,
+        'ACCESS_CHANGE',
+        'Modification de vos accès',
+        format('Le rôle %s vous a été %s.', COALESCE(role_name, 'sélectionné'), CASE WHEN TG_OP = 'INSERT' THEN 'attribué' ELSE 'retiré' END)
+    FROM public.profiles p
+    WHERE p.id = COALESCE(NEW.user_id, OLD.user_id)
+      AND p.id IS DISTINCT FROM actor_id;
+
+    IF actor_id IS NOT NULL THEN
+        INSERT INTO public.notifications (user_id, type, titre, message)
+        SELECT DISTINCT ur.user_id,
+            'ACCESS_CHANGE',
+            'Modification des accès utilisateurs',
+            format('Le rôle %s a été %s pour un utilisateur.', COALESCE(role_name, 'sélectionné'), CASE WHEN TG_OP = 'INSERT' THEN 'attribué' ELSE 'retiré' END)
+        FROM public.user_roles ur
+        JOIN public.role_permissions rp ON rp.role_id = ur.role_id
+        JOIN public.permissions permission ON permission.id = rp.permission_id
+        WHERE permission.code = 'USER_MANAGE'
+          AND ur.user_id IS DISTINCT FROM actor_id;
+    END IF;
+
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_notify_role_insert ON public.user_roles;
+CREATE TRIGGER trg_notify_role_insert AFTER INSERT ON public.user_roles FOR EACH ROW EXECUTE FUNCTION public.notify_role_change();
+DROP TRIGGER IF EXISTS trg_notify_role_delete ON public.user_roles;
+CREATE TRIGGER trg_notify_role_delete AFTER DELETE ON public.user_roles FOR EACH ROW EXECUTE FUNCTION public.notify_role_change();
+
+
 -- ============================================================
 -- 26. DONNEES INITIALES - ROLES
 -- ============================================================

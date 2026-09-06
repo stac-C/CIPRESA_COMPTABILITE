@@ -39,16 +39,17 @@ const NAV_ITEMS = [
 const SEARCH_CONFIG = [
   ["clients", "Clients", "CLIENT_READ", ["id", "code", "nom", "email", "telephone"]],
   ["fournisseurs", "Fournisseurs", "ACHAT_READ", ["id", "code", "nom", "email", "telephone"]],
-  ["achats", "Achats", "ACHAT_READ", ["id", "numero", "fournisseur_id"]],
+  ["achats", "Achats", "ACHAT_READ", ["id", "numero"]],
   ["projets", "Projets", "CLIENT_READ", ["id", "reference", "nom", "ville"]],
-  ["ventes", "Ventes", "VENTE_READ", ["id", "numero", "client_id"]],
-  ["facturation", "Factures", "VENTE_READ", ["id", "numero", "client_id"]],
+  ["ventes", "Ventes", "VENTE_READ", ["id", "numero"]],
+  ["facturation", "Factures", "VENTE_READ", ["id", "numero"]],
   ["inventaire", "Produits", "STOCK_READ", ["id", "reference", "nom"]],
   ["rapports", "Rapports", "RAPPORT_READ", ["id", "reference", "nom"]],
 ];
 
 function GlobalSearch({ can, hasRole, onNavigate }) {
   const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
 
@@ -70,7 +71,7 @@ function GlobalSearch({ can, hasRole, onNavigate }) {
     return () => { active = false; window.clearTimeout(timer); };
   }, [can, hasRole, query]);
 
-  return <div className="global-search"><Search size={16} aria-hidden="true" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher dans vos accès..." aria-label="Rechercher dans les données autorisées" />{query.trim().length >= 2 && <div className="search-results" role="listbox">{searching ? <p className="empty">Recherche...</p> : results.length === 0 ? <p className="empty">Aucun résultat accessible.</p> : results.map((result, index) => <button type="button" key={`${result.tab}-${result.title}-${index}`} onClick={() => { onNavigate(result.tab); setQuery(""); }}><strong>{result.title}</strong><span>{result.label} · {result.detail}</span></button>)}</div>}</div>;
+  return <div className={open ? "global-search is-open" : "global-search"}><button className="search-toggle" type="button" aria-label="Ouvrir la recherche" onClick={() => setOpen((value) => !value)}><Search size={16} aria-hidden="true" /></button><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher dans vos accès..." aria-label="Rechercher dans les données autorisées" />{query.trim().length >= 2 && <div className="search-results" role="listbox">{searching ? <p className="empty">Recherche...</p> : results.length === 0 ? <p className="empty">Aucun résultat accessible.</p> : results.map((result, index) => <button type="button" key={`${result.tab}-${result.title}-${index}`} onClick={() => { onNavigate(result.tab); setQuery(""); setOpen(false); }}><strong>{result.title}</strong><span>{result.label} · {result.detail}</span></button>)}</div>}</div>;
 }
 
 const RESOURCE_CONFIG = {
@@ -252,6 +253,16 @@ function AdminAccessView({ roles, rolePermissions, can }) {
   const [selectedRoles, setSelectedRoles] = useState({});
   const [selectedUserId, setSelectedUserId] = useState("");
   const [selectedRoleIds, setSelectedRoleIds] = useState([]);
+  const [confirmation, setConfirmation] = useState(null);
+
+  function requestConfirmation(title, description, action) {
+    setConfirmation({ title, description, action });
+  }
+
+  function ConfirmDialog() {
+    if (!confirmation) return null;
+    return <div className="modal-backdrop" role="presentation"><div className="success-dialog admin-confirm-dialog" role="dialog" aria-modal="true" aria-label="Confirmer la modification"><h2>{confirmation.title}</h2><p>{confirmation.description}</p><div className="form-actions"><button className="btn-secondary" type="button" onClick={() => setConfirmation(null)}>Annuler</button><button className="primary-button" type="button" onClick={async () => { const action = confirmation.action; setConfirmation(null); await action(); }}>Confirmer la modification</button></div></div></div>;
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -285,59 +296,59 @@ function AdminAccessView({ roles, rolePermissions, can }) {
 
   async function toggleUser(user) {
     if (!can("USER_MANAGE")) return;
-    setSavingUser(user.id);
-    const { error: updateError } = await supabase.from("profiles").update({ actif: !user.actif }).eq("id", user.id);
-    setSavingUser(null);
-    if (updateError) setError(updateError.message);
-    else setUsers((current) => current.map((item) => item.id === user.id ? { ...item, actif: !user.actif } : item));
+    requestConfirmation(user.actif ? "Désactiver cet utilisateur ?" : "Activer cet utilisateur ?", `Le compte de ${user.prenom || "cet utilisateur"} sera ${user.actif ? "désactivé" : "activé"}.`, async () => {
+      setSavingUser(user.id);
+      const { error: updateError } = await supabase.from("profiles").update({ actif: !user.actif }).eq("id", user.id);
+      setSavingUser(null);
+      if (updateError) setError(updateError.message);
+      else setUsers((current) => current.map((item) => item.id === user.id ? { ...item, actif: !user.actif } : item));
+    });
   }
 
   async function assignRole(userId) {
     const roleId = selectedRoles[userId];
     if (!roleId || !can("USER_MANAGE")) return;
-    setError(null);
-    const { error: insertError } = await supabase.from("user_roles").insert({ user_id: userId, role_id: roleId });
-    if (insertError) {
-      setError(insertError.message);
-      return;
-    }
     const role = availableRoles.find((item) => item.id === roleId);
-    setUserRoles((current) => [...current, { user_id: userId, role: role || null }]);
-    setSelectedRoles((current) => ({ ...current, [userId]: "" }));
+    requestConfirmation("Attribuer ce rôle ?", `Le rôle ${role?.nom || "sélectionné"} sera attribué à cet utilisateur.`, async () => {
+      setError(null);
+      const { error: insertError } = await supabase.from("user_roles").insert({ user_id: userId, role_id: roleId });
+      if (insertError) { setError(insertError.message); return; }
+      setUserRoles((current) => [...current, { user_id: userId, role: role || null }]);
+      setSelectedRoles((current) => ({ ...current, [userId]: "" }));
+    });
   }
 
   async function assignSelectedRoles(event) {
     event.preventDefault();
     if (!selectedUserId || !selectedRoleIds.length || !can("USER_MANAGE")) return;
-    setSavingUser(selectedUserId);
-    setError(null);
-    const { error: insertError } = await supabase.from("user_roles").insert(selectedRoleIds.map((roleId) => ({ user_id: selectedUserId, role_id: roleId })));
-    setSavingUser(null);
-    if (insertError) {
-      setError(`Attribution refusée par Supabase/RLS : ${insertError.message}`);
-      return;
-    }
-    const assignedRoles = selectedRoleIds.map((roleId) => ({ user_id: selectedUserId, role_id: roleId, role: availableRoles.find((role) => role.id === roleId) || null }));
-    setUserRoles((current) => [...current, ...assignedRoles]);
-    setSelectedRoleIds([]);
+    const selectedNames = selectedRoleIds.map((roleId) => availableRoles.find((role) => role.id === roleId)?.nom).filter(Boolean).join(", ");
+    requestConfirmation("Attribuer les rôles sélectionnés ?", `Les rôles ${selectedNames} seront attribués à l'utilisateur choisi.`, async () => {
+      setSavingUser(selectedUserId);
+      setError(null);
+      const { error: insertError } = await supabase.from("user_roles").insert(selectedRoleIds.map((roleId) => ({ user_id: selectedUserId, role_id: roleId })));
+      setSavingUser(null);
+      if (insertError) { setError(`Attribution refusée par Supabase/RLS : ${insertError.message}`); return; }
+      const assignedRoles = selectedRoleIds.map((roleId) => ({ user_id: selectedUserId, role_id: roleId, role: availableRoles.find((role) => role.id === roleId) || null }));
+      setUserRoles((current) => [...current, ...assignedRoles]);
+      setSelectedRoleIds([]);
+    });
   }
 
   async function removeRole(userId, roleCode) {
     if (!can("USER_MANAGE")) return;
     const role = availableRoles.find((item) => item.code === roleCode);
     if (!role) return;
-    setError(null);
-    const { error: deleteError } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role_id", role.id);
-    if (deleteError) {
-      setError(`Révocation refusée par Supabase/RLS : ${deleteError.message}`);
-      return;
-    }
-    setUserRoles((current) => current.filter((item) => !(item.user_id === userId && item.role?.code === roleCode)));
-    if (selectedUserId === userId) setSelectedRoleIds((current) => current.filter((roleId) => roleId !== role.id));
+    requestConfirmation("Révoquer ce rôle ?", `Le rôle ${role.nom} sera retiré de cet utilisateur.`, async () => {
+      setError(null);
+      const { error: deleteError } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role_id", role.id);
+      if (deleteError) { setError(`Révocation refusée par Supabase/RLS : ${deleteError.message}`); return; }
+      setUserRoles((current) => current.filter((item) => !(item.user_id === userId && item.role?.code === roleCode)));
+      if (selectedUserId === userId) setSelectedRoleIds((current) => current.filter((roleId) => roleId !== role.id));
+    });
   }
 
   return (
-    <div className="admin-grid">
+    <><ConfirmDialog /><div className="admin-grid">
       <section className="content-panel admin-users-panel">
         <div className="section-heading"><div><p className="section-kicker">Administration · USER_READ / USER_MANAGE</p><h2>Utilisateurs & rôles</h2><p className="panel-description">Consultez les comptes, leurs rôles et leur statut d’activité. Les changements de rôle restent soumis aux règles de sécurité Supabase.</p></div><span className="record-count">{users.length} profil{users.length > 1 ? "s" : ""}</span></div>
         <div className="policy-note"><strong>Lecture sécurisée</strong><span>Les profils et rôles affichés proviennent de Supabase. L’attribution reste contrôlée par les policies RLS existantes.</span></div>
@@ -346,7 +357,7 @@ function AdminAccessView({ roles, rolePermissions, can }) {
         {loading ? <p className="empty">Chargement…</p> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Utilisateur</th><th>Contact</th><th>Rôle</th><th>Statut</th>{can("USER_MANAGE") && <th>Opérations</th>}</tr></thead><tbody>{users.map((user) => <tr key={user.id}><td><strong>{`${user.prenom || ""} ${user.nom || ""}`.trim() || "Profil sans nom"}</strong><small>{user.id}</small></td><td>{displayValue(user.telephone)}</td><td><div className="role-assignment">{userRoles.filter((item) => item.user_id === user.id && item.role).map((item) => <button className="role-badge" type="button" key={item.role.code} title="Retirer ce rôle" onClick={() => removeRole(user.id, item.role.code)}>{item.role.nom} ×</button>)}{!rolesForUser(user.id) && <span className="muted">Aucun rôle</span>}{can("USER_MANAGE") && <div className="role-assignment-controls"><select value={selectedRoles[user.id] || ""} onChange={(event) => setSelectedRoles((current) => ({ ...current, [user.id]: event.target.value }))}><option value="">Ajouter un rôle</option>{availableRoles.filter((role) => !userRoles.some((item) => item.user_id === user.id && item.role?.code === role.code)).map((role) => <option value={role.id} key={role.id}>{role.nom}</option>)}</select><button className="link-button" type="button" onClick={() => assignRole(user.id)}>Attribuer</button></div>}</div></td><td><span className={`status-dot ${user.actif ? "is-active" : "is-inactive"}`}>{user.actif ? "Actif" : "Inactif"}</span></td>{can("USER_MANAGE") && <td><button className="link-button" type="button" disabled={savingUser === user.id} onClick={() => toggleUser(user)}>{user.actif ? "Désactiver" : "Activer"}</button></td>}</tr>)}</tbody></table></div>}
       </section>
       <section className="content-panel permissions-panel"><div className="section-heading"><div><p className="section-kicker">Référentiel Supabase</p><h2>Privilèges par rôle</h2></div></div><div className="role-list">{[...roles].sort((a, b) => ROLE_ORDER.indexOf(a.code) - ROLE_ORDER.indexOf(b.code)).map((role) => <article className="role-card" key={role.id}><div><span className="role-code">{role.code}</span><h3>{role.nom}</h3><p>{role.description || "Aucune description"}</p></div><div className="permission-list">{(rolePermissions[role.id] || []).length ? rolePermissions[role.id].map((permission) => <span key={permission.code} title={permission.description}>{permission.nom}</span>) : <span className="muted">Aucun privilège enregistré dans la base.</span>}</div></article>)}</div></section>
-    </div>
+    </div></>
   );
 }
 

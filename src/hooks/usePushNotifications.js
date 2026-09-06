@@ -15,6 +15,7 @@ function deviceLabel() {
 export default function usePushNotifications(userId) {
   const [permission, setPermission] = useState(typeof Notification === "undefined" ? "unsupported" : Notification.permission);
   const [supported, setSupported] = useState(false);
+  const [configured, setConfigured] = useState(Boolean(import.meta.env.VITE_VAPID_PUBLIC_KEY));
 
   useEffect(() => {
     if (!userId || !("serviceWorker" in navigator) || !("PushManager" in window)) return undefined;
@@ -26,6 +27,7 @@ export default function usePushNotifications(userId) {
       const deviceKey = `${registration.scope}:${navigator.userAgent}`;
       await supabase.from("user_devices").upsert({ user_id: userId, device_key: deviceKey, label: deviceLabel(), user_agent: navigator.userAgent, last_seen_at: new Date().toISOString(), revoked_at: null }, { onConflict: "user_id,device_key" });
       const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+      setConfigured(Boolean(vapidKey));
       if (!vapidKey || typeof Notification === "undefined" || Notification.permission !== "granted") return;
       const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64ToBytes(vapidKey) });
       await supabase.from("push_subscriptions").upsert({ user_id: userId, endpoint: subscription.endpoint, device_key: deviceKey, subscription: subscription.toJSON(), user_agent: navigator.userAgent, last_seen_at: new Date().toISOString() }, { onConflict: "endpoint" });
@@ -42,5 +44,5 @@ export default function usePushNotifications(userId) {
     return nextPermission;
   }
 
-  return { supported, permission, enablePush };
+  return { supported, configured, permission, enablePush };
 }
