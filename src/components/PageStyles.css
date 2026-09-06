@@ -88,6 +88,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 [data-theme="dark"] .theme-option { color: #a5c2ad; }
 [data-theme="dark"] .theme-option.active { background: #326347; color: #f0fff3; }
 [data-theme="dark"] .policy-note, [data-theme="dark"] .task-panel { border-color: #386148; background: #1c3726; color: #b5d1bc; }
+[data-theme="dark"] .role-manager { border-color: #365542; background: #132019; }
+[data-theme="dark"] .role-manager select, [data-theme="dark"] .role-checkboxes label { border-color: #365542; background: #1b2d23; color: #cce4d2; }
 [data-theme="dark"] .permission-list span { border-color: #386148; background: #203d2b; color: #bce0c5; }
 
 @media (prefers-reduced-motion: reduce) {

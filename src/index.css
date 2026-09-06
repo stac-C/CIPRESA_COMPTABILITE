@@ -596,6 +596,14 @@ body {
 .content-panel .data-table td strong { display: block; color: #1d2e4d; }
 .content-panel .data-table td small { display: block; max-width: 155px; margin-top: 3px; overflow: hidden; color: #9aa5b4; font-size: .58rem; text-overflow: ellipsis; }
 .admin-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(320px, .8fr); gap: 17px; }
+.role-manager { display: grid; gap: 12px; margin: 18px 0; padding: 14px; border: 1px solid #d8e4dc; border-radius: 7px; background: #f7fbf8; }
+.role-manager > label, .role-picker { display: grid; gap: 6px; color: #526987; font-size: .7rem; font-weight: 700; }
+.role-manager select { width: 100%; padding: 10px 11px; border: 1px solid #d5dce6; border-radius: 4px; background: #fff; color: #263957; font: inherit; font-size: .72rem; }
+.role-picker small { color: #8290a2; font-weight: 400; }
+.role-checkboxes { display: flex; flex-wrap: wrap; gap: 7px; }
+.role-checkboxes label { display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px; border: 1px solid #d6e2da; border-radius: 5px; background: #fff; color: #405471; font-size: .67rem; font-weight: 500; cursor: pointer; }
+.role-checkboxes input { accent-color: var(--accent); }
+.role-manager .primary-button { justify-self: start; }
 .policy-note { display: grid; gap: 4px; margin: 18px 0; padding: 11px 13px; border-left: 3px solid #315a9d; background: #f1f6fc; color: #63728a; font-size: .68rem; line-height: 1.45; }
 .policy-note strong { color: #24477e; }
 .role-list { display: grid; gap: 10px; margin-top: 17px; }
@@ -640,6 +648,7 @@ body {
   .stats-grid { gap: 9px; }
   .task-list { grid-template-columns: 1fr; }
   .role-dashboard-grid, .admin-operation-list { grid-template-columns: 1fr; }
+  .role-checkboxes { display: grid; grid-template-columns: 1fr 1fr; }
   .role-hero { display: grid; }
   .settings-form { grid-template-columns: 1fr; }
   .settings-form button { grid-column: auto; }

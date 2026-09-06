@@ -212,13 +212,15 @@ function AdminAccessView({ roles, rolePermissions, can }) {
   const [savingUser, setSavingUser] = useState(null);
   const [availableRoles, setAvailableRoles] = useState([]);
   const [selectedRoles, setSelectedRoles] = useState({});
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedRoleIds, setSelectedRoleIds] = useState([]);
 
   useEffect(() => {
     let isMounted = true;
     async function loadAdministration() {
       const [profilesResult, rolesResult, availableRolesResult] = await Promise.all([
         supabase.from("profiles").select("id, nom, prenom, telephone, actif, created_at").order("created_at", { ascending: true }),
-        supabase.from("user_roles").select("user_id, role:roles(code, nom)"),
+        supabase.from("user_roles").select("user_id, role_id, role:roles(code, nom)"),
         supabase.from("roles").select("id, code, nom").order("nom"),
       ]);
       if (!isMounted) return;
@@ -233,6 +235,15 @@ function AdminAccessView({ roles, rolePermissions, can }) {
   }, []);
 
   const rolesForUser = (userId) => userRoles.filter((item) => item.user_id === userId).map((item) => item.role?.nom).filter(Boolean).join(", ");
+  const selectedUser = users.find((user) => user.id === selectedUserId);
+  const assignedRoleIds = userRoles.filter((item) => item.user_id === selectedUserId).map((item) => item.role_id);
+  const assignableRoles = availableRoles.filter((role) => !assignedRoleIds.includes(role.id));
+
+  function selectUser(userId) {
+    setSelectedUserId(userId);
+    setSelectedRoleIds([]);
+    setError(null);
+  }
 
   async function toggleUser(user) {
     if (!can("USER_MANAGE")) return;
@@ -257,6 +268,21 @@ function AdminAccessView({ roles, rolePermissions, can }) {
     setSelectedRoles((current) => ({ ...current, [userId]: "" }));
   }
 
+  async function assignSelectedRoles(event) {
+    event.preventDefault();
+    if (!selectedUserId || !selectedRoleIds.length || !can("USER_MANAGE")) return;
+    setSavingUser(selectedUserId);
+    setError(null);
+    const { data, error: insertError } = await supabase.from("user_roles").insert(selectedRoleIds.map((roleId) => ({ user_id: selectedUserId, role_id: roleId }))).select("user_id, role_id, role:roles(code, nom)");
+    setSavingUser(null);
+    if (insertError) {
+      setError(`Attribution refusée par Supabase/RLS : ${insertError.message}`);
+      return;
+    }
+    setUserRoles((current) => [...current, ...(data || [])]);
+    setSelectedRoleIds([]);
+  }
+
   async function removeRole(userId, roleCode) {
     if (!can("USER_MANAGE")) return;
     const role = availableRoles.find((item) => item.code === roleCode);
@@ -264,10 +290,11 @@ function AdminAccessView({ roles, rolePermissions, can }) {
     setError(null);
     const { error: deleteError } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role_id", role.id);
     if (deleteError) {
-      setError(deleteError.message);
+      setError(`Révocation refusée par Supabase/RLS : ${deleteError.message}`);
       return;
     }
     setUserRoles((current) => current.filter((item) => !(item.user_id === userId && item.role?.code === roleCode)));
+    if (selectedUserId === userId) setSelectedRoleIds((current) => current.filter((roleId) => roleId !== role.id));
   }
 
   return (
@@ -276,6 +303,7 @@ function AdminAccessView({ roles, rolePermissions, can }) {
         <div className="section-heading"><div><p className="section-kicker">Administration · USER_READ / USER_MANAGE</p><h2>Utilisateurs & rôles</h2><p className="panel-description">Consultez les comptes, leurs rôles et leur statut d’activité. Les changements de rôle restent soumis aux règles de sécurité Supabase.</p></div><span className="record-count">{users.length} profil{users.length > 1 ? "s" : ""}</span></div>
         <div className="policy-note"><strong>Lecture sécurisée</strong><span>Les profils et rôles affichés proviennent de Supabase. L’attribution reste contrôlée par les policies RLS existantes.</span></div>
         {error && <p className="message error">Erreur de lecture : {error}</p>}
+        {can("USER_MANAGE") && <form className="role-manager" onSubmit={assignSelectedRoles}><label><span>Utilisateur de la plateforme</span><select value={selectedUserId} onChange={(event) => selectUser(event.target.value)}><option value="">Sélectionner un utilisateur</option>{users.map((user) => <option value={user.id} key={user.id}>{`${user.prenom || ""} ${user.nom || ""}`.trim() || "Profil sans nom"} · {user.actif ? "Actif" : "Inactif"}</option>)}</select></label><div className="role-picker"><span>Rôles à attribuer</span>{!selectedUserId ? <small>Sélectionnez d’abord un utilisateur.</small> : assignableRoles.length === 0 ? <small>Cet utilisateur possède déjà tous les rôles disponibles.</small> : <div className="role-checkboxes">{assignableRoles.map((role) => <label key={role.id}><input type="checkbox" checked={selectedRoleIds.includes(role.id)} onChange={(event) => setSelectedRoleIds((current) => event.target.checked ? [...current, role.id] : current.filter((id) => id !== role.id))} />{role.nom}</label>)}</div>}</div><button className="primary-button" type="submit" disabled={!selectedUser || !selectedRoleIds.length || savingUser === selectedUserId}>{savingUser === selectedUserId ? "Enregistrement..." : "Attribuer les rôles sélectionnés"}</button></form>}
         {loading ? <p className="empty">Chargement…</p> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Utilisateur</th><th>Contact</th><th>Rôle</th><th>Statut</th>{can("USER_MANAGE") && <th>Opérations</th>}</tr></thead><tbody>{users.map((user) => <tr key={user.id}><td><strong>{`${user.prenom || ""} ${user.nom || ""}`.trim() || "Profil sans nom"}</strong><small>{user.id}</small></td><td>{displayValue(user.telephone)}</td><td><div className="role-assignment">{userRoles.filter((item) => item.user_id === user.id && item.role).map((item) => <button className="role-badge" type="button" key={item.role.code} title="Retirer ce rôle" onClick={() => removeRole(user.id, item.role.code)}>{item.role.nom} ×</button>)}{!rolesForUser(user.id) && <span className="muted">Aucun rôle</span>}{can("USER_MANAGE") && <div className="role-assignment-controls"><select value={selectedRoles[user.id] || ""} onChange={(event) => setSelectedRoles((current) => ({ ...current, [user.id]: event.target.value }))}><option value="">Ajouter un rôle</option>{availableRoles.filter((role) => !userRoles.some((item) => item.user_id === user.id && item.role?.code === role.code)).map((role) => <option value={role.id} key={role.id}>{role.nom}</option>)}</select><button className="link-button" type="button" onClick={() => assignRole(user.id)}>Attribuer</button></div>}</div></td><td><span className={`status-dot ${user.actif ? "is-active" : "is-inactive"}`}>{user.actif ? "Actif" : "Inactif"}</span></td>{can("USER_MANAGE") && <td><button className="link-button" type="button" disabled={savingUser === user.id} onClick={() => toggleUser(user)}>{user.actif ? "Désactiver" : "Activer"}</button></td>}</tr>)}</tbody></table></div>}
       </section>
       <section className="content-panel permissions-panel"><div className="section-heading"><div><p className="section-kicker">Référentiel Supabase</p><h2>Privilèges par rôle</h2></div></div><div className="role-list">{[...roles].sort((a, b) => ROLE_ORDER.indexOf(a.code) - ROLE_ORDER.indexOf(b.code)).map((role) => <article className="role-card" key={role.id}><div><span className="role-code">{role.code}</span><h3>{role.nom}</h3><p>{role.description || "Aucune description"}</p></div><div className="permission-list">{(rolePermissions[role.id] || []).length ? rolePermissions[role.id].map((permission) => <span key={permission.code} title={permission.description}>{permission.nom}</span>) : <span className="muted">Aucun privilège enregistré dans la base.</span>}</div></article>)}</div></section>
