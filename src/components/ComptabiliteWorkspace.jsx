@@ -23,7 +23,7 @@ export default function ComptabiliteWorkspace({ section = 'journal', session, ca
   const normalized = section || 'comptabilite';
   const [current, setCurrent] = useState(normalized);
   const [periodType, setPeriodType] = useState('mensuelle');
-  const [period, setPeriod] = useState('Octobre 2025');
+  const [period, setPeriod] = useState(today());
   const [filterOpen, setFilterOpen] = useState(false);
   useEffect(() => setCurrent(normalized), [normalized]);
 
@@ -53,7 +53,7 @@ export default function ComptabiliteWorkspace({ section = 'journal', session, ca
       <div><p className="section-kicker">Espace comptable · SYSCOHADA</p><h1>{titles[current]?.[0] || 'Comptabilité'}</h1><p>{titles[current]?.[1]}</p></div>
       <div className="accounting-header-actions">
         <label className="period-control"><span>Type</span><select className="accounting-period" value={periodType} onChange={e => setPeriodType(e.target.value)}><option>journaliere</option><option>hebdomadaire</option><option>mensuelle</option><option>trimestrielle</option><option>annuelle</option><option>pluriannuelle</option></select></label>
-        <label className="period-control"><span>Période</span><input className="accounting-period" value={period} onChange={e => setPeriod(e.target.value)} /></label>
+        <label className="period-control"><span>Période</span><input className="accounting-period" type="date" value={period} onChange={e => setPeriod(e.target.value)} /></label>
         <button className="outline-button" type="button" onClick={() => setFilterOpen(v => !v)}><Filter size={15}/> Filtres</button>
         {current === 'journal' && <button className="primary-button" type="button" onClick={() => navigate('ecritures')}><Plus size={15}/> Nouvelle écriture</button>}
         {current === 'plan-comptable' && <button className="primary-button" type="button" onClick={() => setCurrent('nouveau-compte')}><Plus size={15}/> Nouveau compte</button>}
@@ -61,7 +61,7 @@ export default function ComptabiliteWorkspace({ section = 'journal', session, ca
         {current === 'immobilisations' && <button className="primary-button" type="button" onClick={() => setCurrent('nouvelle-immobilisation')}><Plus size={15}/> Nouvelle immobilisation</button>}
       </div>
     </header>
-    {filterOpen && <div className="accounting-filter-row"><span>Filtres actifs :</span><strong>{periodType}</strong><strong>{period}</strong><button className="link-button" type="button" onClick={() => { setPeriodType('mensuelle'); setPeriod('Octobre 2025'); }}>Réinitialiser</button></div>}
+    {filterOpen && <div className="accounting-filter-row"><span>Filtres actifs :</span><strong>{periodType}</strong><strong>{period}</strong><button className="link-button" type="button" onClick={() => { setPeriodType('mensuelle'); setPeriod(today()); }}>Réinitialiser</button></div>}
     <div className="accounting-tabs">{SECTIONS.map(([id, label]) => <button key={id} onClick={() => navigate(id)} className={current === id ? 'active' : ''}>{label}</button>)}</div>
     {current === 'comptabilite' && <AccountingOverview onNavigate={navigate} can={can} />}
     {current === 'plan-comptable' && <ChartOfAccountsView />}
@@ -114,11 +114,26 @@ function AccountingOverview({ onNavigate, can }) {
 
 function ChartOfAccountsView() {
   const [query, setQuery] = useState(''); const [nature, setNature] = useState('Tous');
-  const extra = (() => { try { return JSON.parse(localStorage.getItem('cipresa-chart-accounts') || '[]'); } catch { return []; } })();
-  const source = [...chartOfAccounts, ...extra];
+  const [source, setSource] = useState(chartOfAccounts); const [loading, setLoading] = useState(supabaseConfigured); const [notice, setNotice] = useState('');
+  useEffect(() => {
+    let active = true;
+    const localExtra = (() => { try { return JSON.parse(localStorage.getItem('cipresa-chart-accounts') || '[]'); } catch { return []; } })();
+    if (!supabaseConfigured) { setSource([...chartOfAccounts, ...localExtra]); setLoading(false); return undefined; }
+    supabase.from('comptes_comptables').select('id,numero,libelle,classe,nature,actif').order('numero').then(({ data, error }) => {
+      if (!active) return;
+      if (error) { setNotice(`Impossible de charger le référentiel : ${error.message}`); setSource([...chartOfAccounts, ...localExtra]); }
+      else {
+        const databaseRows = (data || []).map(row => ({ code: row.numero, label: row.libelle, nature: row.nature, status: row.actif ? 'Actif' : 'Inactif', usage: row.classe }));
+        setSource(databaseRows.length ? databaseRows : [...chartOfAccounts, ...localExtra]);
+      }
+      setLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
   const rows = source.filter(row => `${row.code} ${row.label}`.toLowerCase().includes(query.toLowerCase()) && (nature === 'Tous' || row.nature === nature));
-  return <SectionCard title="Référentiel comptable" description={`${rows.length} comptes visibles · racines SYSCOHADA conservées`}>
-    <div className="toolbar"><div className="search-field"><Search size={15}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un compte…"/></div><select value={nature} onChange={e => setNature(e.target.value)}><option>Tous</option>{[...new Set(source.map(r => r.nature))].map(n => <option key={n}>{n}</option>)}</select></div>
+  return <SectionCard title="Référentiel comptable" description={`${rows.length} comptes visibles · racines SYSCOHADA conservées`} actions={loading && <span className="panel-description">Synchronisation Supabase…</span>}>
+    <div className="toolbar"><div className="search-field"><Search size={15}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un compte…" aria-label="Rechercher un compte"/></div><select value={nature} onChange={e => setNature(e.target.value)} aria-label="Filtrer par nature"><option>Tous</option>{[...new Set(source.map(r => r.nature))].map(n => <option key={n}>{n}</option>)}</select></div>
+    {notice && <div className="info-strip"><CircleAlert size={15}/>{notice}</div>}
     <div className="table-scroll"><table className="data-table accounting-table"><thead><tr><th>Compte</th><th>Intitulé</th><th>Nature</th><th>Statut</th><th>Utilisation</th></tr></thead><tbody>{rows.map(row => <tr key={row.code}><td className="code-cell">{row.code}</td><td><strong>{row.label}</strong></td><td>{row.nature}</td><td><span className="badge">{row.status}</span></td><td>{row.usage}</td></tr>)}</tbody></table></div>
   </SectionCard>;
 }
@@ -135,7 +150,7 @@ function AccountForm({ onCancel, onSaved }) {
     setSaving(true); setNotice('');
     if (supabaseConfigured) {
       const nature = form.nature === 'PASSIF' ? 'PASSIF' : form.nature === 'CHARGE' ? 'CHARGE' : form.nature === 'PRODUIT' ? 'PRODUIT' : 'ACTIF';
-      const { error } = await supabase.from('comptes_comptables').insert({ numero: form.code, libelle: form.label, classe: form.classe, nature, actif: true });
+      const { error } = await supabase.from('comptes_comptables').insert({ numero: form.code.trim(), libelle: form.label.trim(), classe: form.classe, nature, actif: true });
       if (error) { setSaving(false); setNotice(error.message); return false; }
     } else {
       const rows = JSON.parse(localStorage.getItem('cipresa-chart-accounts') || '[]');

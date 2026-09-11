@@ -847,6 +847,10 @@ body {
 .accounting-light .accounting-header { padding: 2px 0 0; }
 .accounting-light .accounting-header h1 { color: var(--compta-text); font-size: 28px; letter-spacing: -.025em; }
 .accounting-light .accounting-header p { color: var(--compta-muted); }
+.accounting-light .accounting-header-actions { align-items: flex-end; padding-top: 2px; }
+.accounting-light .period-control { min-width: 126px; color: #65758a; letter-spacing: .02em; text-transform: uppercase; }
+.accounting-light .accounting-period { min-width: 126px; border-color: #d9e3e8; border-radius: 7px; background: #fff; color: var(--compta-text); }
+.accounting-light .accounting-period:focus { outline: 0; border-color: #62bdb5; box-shadow: 0 0 0 3px rgba(13,148,136,.09); }
 .accounting-light .accounting-tabs { background: #fff; border: 1px solid var(--compta-border); border-radius: 9px; padding: 3px; box-shadow: 0 1px 3px rgba(20,32,51,.03); }
 .accounting-light .accounting-tabs button { border-radius: 7px; border-bottom: 0; padding: 10px 12px; color: #68788d; }
 .accounting-light .accounting-tabs button:hover { color: var(--compta-green-dark); background: var(--compta-green-soft); }
@@ -868,12 +872,14 @@ body {
 .accounting-light .accounting-card { gap: 14px; }
 .accounting-light .accounting-card .section-heading { padding-bottom: 2px; }
 .accounting-light .accounting-card .section-heading h2 { font-size: 17px; }
+.accounting-light .accounting-card .section-heading .panel-description { margin-top: 4px; }
 .accounting-light .toolbar { margin: 2px 0 8px; }
 .accounting-light .search-field, .accounting-light .toolbar select, .accounting-light .form-field input, .accounting-light .form-field select { border-color: #d9e3e8; border-radius: 7px; }
 .accounting-light .search-field:focus-within, .accounting-light .form-field input:focus, .accounting-light .form-field select:focus { outline: 0; border-color: #62bdb5; box-shadow: 0 0 0 3px rgba(13,148,136,.09); }
 .accounting-light .data-table th { background: #f8fafb; color: #65758a; }
 .accounting-light .data-table td { font-size: 12px; }
 .accounting-light .accounting-table tbody tr:hover { background: #f8fcfb; }
+.accounting-light .accounting-table tbody tr td:first-child { font-variant-numeric: tabular-nums; }
 .accounting-light .accounting-table .code-cell { color: var(--compta-green-dark); }
 .accounting-light .form-section-title { margin-top: 8px; padding: 0 0 9px; border-bottom: 1px solid #e1e8ec; font-size: 14px; }
 .accounting-light .form-section-title.first { margin-top: 0; }
@@ -887,5 +893,39 @@ body {
 .accounting-light .upload-drop { border-color: #54bcb1; background: #fcfffe; }
 @media (max-width: 1050px) { .accounting-light .accounting-module-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } .accounting-light .accounting-hero-panel { align-items: flex-start; flex-direction: column; } }
 @media (max-width: 700px) { .accounting-light .accounting-module-grid { grid-template-columns: 1fr; } .accounting-light .accounting-quick-actions { width: 100%; flex-wrap: wrap; } .accounting-light .accounting-quick-actions button { flex: 1; } }
+@media (max-width: 700px) { .accounting-light .accounting-header-actions { align-items: stretch; } .accounting-light .period-control, .accounting-light .accounting-period { width: 100%; } }
 .accounting-light .accounting-context-row { display:flex; align-items:center; gap:8px; padding:8px 10px; background:#f5fbfa; border:1px solid #dceeea; border-radius:7px; color:#708096; font-size:11px; }
 .accounting-light .accounting-context-row strong { color:#0f766e; }
+.accounting-light .account-form-card { padding: 22px; }
+.accounting-light .account-form-card .form-grid { display: grid; gap: 16px; }
+.accounting-light .account-form-card .form-grid.two-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.accounting-light .account-form-card .form-field { display: grid; gap: 7px; min-width: 0; color: #52657b; font-size: 12px; font-weight: 700; }
+.accounting-light .account-form-card .form-field > span { line-height: 1.25; }
+.accounting-light .account-form-card .form-field input,
+.accounting-light .account-form-card .form-field select { width: 100%; min-height: 40px; box-sizing: border-box; padding: 0 11px; border: 1px solid #d9e3e8; border-radius: 7px; background: #fff; color: #142033; font: inherit; font-size: 12px; font-weight: 500; }
+.accounting-light .account-form-card .form-field input::placeholder { color: #9aa8b7; }
+.accounting-light .account-form-card .form-field input:focus,
+.accounting-light .account-form-card .form-field select:focus { outline: 0; border-color: #43aaa0; box-shadow: 0 0 0 3px rgba(13,148,136,.1); }
+.accounting-light .account-form-card .form-section-title { margin-top: 12px; padding: 14px 0 9px; color: #26384d; font-size: 13px; font-weight: 800; letter-spacing: .01em; }
+.accounting-light .account-form-card .form-section-title.first { padding-top: 2px; }
+.accounting-light .account-form-card .radio-row { display: flex; flex-wrap: wrap; align-items: center; gap: 9px 14px; min-height: 40px; padding: 0 2px; }
+.accounting-light .account-form-card .radio-row label { display: inline-flex; align-items: center; gap: 5px; color: #52657b; font-size: 12px; font-weight: 600; cursor: pointer; }
+.accounting-light .account-form-card .radio-row input { width: 14px; height: 14px; margin: 0; accent-color: #0d9488; }
+.accounting-light .account-form-card .property-toggles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 2px 0 4px; }
+.accounting-light .account-form-card .toggle-option { display: flex; align-items: center; gap: 11px; min-height: 62px; padding: 11px 13px; border: 1px solid #d9e7e5; border-radius: 8px; background: #f8fcfb; }
+.accounting-light .account-form-card .toggle-option > div { display: grid; gap: 4px; min-width: 0; }
+.accounting-light .account-form-card .toggle-option strong { color: #26384d; font-size: 12px; }
+.accounting-light .account-form-card .toggle-option small { color: #728397; font-size: 10px; line-height: 1.35; }
+.accounting-light .account-form-card .toggle { position: relative; flex: 0 0 auto; width: 36px; height: 21px; padding: 0; border: 0; border-radius: 999px; background: #cbd7df; cursor: pointer; }
+.accounting-light .account-form-card .toggle span { position: absolute; top: 3px; left: 3px; width: 15px; height: 15px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(20,32,51,.2); transition: transform .2s ease; }
+.accounting-light .account-form-card .toggle.on { background: #0d9488; }
+.accounting-light .account-form-card .toggle.on span { transform: translateX(15px); }
+.accounting-light .account-form-card .form-actions { justify-content: flex-end; flex-wrap: wrap; padding-top: 5px; }
+.accounting-light .account-form-card .form-actions button { min-height: 38px; }
+@media (max-width: 700px) {
+  .accounting-light .account-form-card { padding: 16px; }
+  .accounting-light .account-form-card .form-grid.two-cols,
+  .accounting-light .account-form-card .property-toggles { grid-template-columns: 1fr; }
+  .accounting-light .account-form-card .form-actions { display: grid; grid-template-columns: 1fr; }
+  .accounting-light .account-form-card .form-actions button { width: 100%; }
+}
