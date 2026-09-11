@@ -19,3 +19,6 @@ export const supabase = supabaseConfigured
       },
     })
   : null;
+
+
+//supa
