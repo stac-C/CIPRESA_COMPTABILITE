@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { supabase, supabaseConfigured } from "../lib/supabaseClient";
 
 const AuthContext = createContext(undefined);
 
@@ -14,6 +14,11 @@ export function AuthProvider({ children }) {
   const [accessError, setAccessError] = useState(null);
 
   useEffect(() => {
+    if (!supabaseConfigured || !supabase) {
+      setLoading(false);
+      return;
+    }
+
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
@@ -29,6 +34,15 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    if (!supabaseConfigured || !supabase) {
+      setProfile(null);
+      setRoles([]);
+      setPermissions([]);
+      setRolePermissions({});
+      setAccessLoading(false);
+      return;
+    }
+
     if (!session?.user) {
       setProfile(null);
       setRoles([]);
