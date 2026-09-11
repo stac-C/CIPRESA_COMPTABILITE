@@ -1,0 +1,472 @@
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "../context/AuthContext";
+import StatCard from "../components/StatCard";
+import FacturesTable from "../components/FacturesTable";
+import PersonalSettings from "../components/PersonalSettings";
+import AdminControlCenter from "../components/AdminControlCenter";
+import ComptabiliteWorkspace from "../components/ComptabiliteWorkspace";
+import AdminDashboard from "../components/dashboards/AdminDashboard";
+import GerantDashboard from "../components/dashboards/GerantDashboard";
+import ComptableDashboard from "../components/dashboards/ComptableDashboard";
+import AgentCommercialDashboard from "../components/dashboards/AgentCommercialDashboard";
+import MagasinierDashboard from "../components/dashboards/MagasinierDashboard";
+import ConsultantDashboard from "../components/dashboards/ConsultantDashboard";
+import { canAccessTab } from "../components/roles/accessMatrix";
+import ResourceWorkspace from "../components/resources/ResourceWorkspace";
+import { useDashboardData } from "../hooks/useDashboardData";
+import DashboardCharts from "../components/DashboardCharts";
+import FacturesDataTable from "../components/FacturesDataTable";
+import { useTheme } from "../context/ThemeContext";
+import { BookOpen, BriefcaseBusiness, Boxes, Contact, FileBarChart, Landmark, LayoutDashboard, Menu, Receipt, Search, Settings, ShoppingCart, Truck, Users, WalletCards, X, ChevronDown } from "lucide-react";
+
+const NAV_ITEMS = [
+  { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+  { id: "clients", label: "Clients", icon: Users, permission: "CLIENT_READ" },
+  { id: "fournisseurs", label: "Fournisseurs", icon: Truck, permission: "ACHAT_READ" },
+  { id: "achats", label: "Achats", icon: ShoppingCart, permission: "ACHAT_READ" },
+  { id: "projets", label: "Projets", icon: BriefcaseBusiness, roles: ["ADMIN", "GERANT"] },
+  { id: "ventes", label: "Ventes", icon: WalletCards, permission: "VENTE_READ" },
+  { id: "facturation", label: "Facturation", icon: Receipt, permission: "VENTE_READ" },
+  { id: "inventaire", label: "Inventaire", icon: Boxes, permission: "STOCK_READ" },
+  { id: "comptabilite", label: "Comptabilité", icon: Landmark, permission: "COMPTA_READ" },
+  { id: "profile", label: "Mon profil", icon: Contact },
+];
+
+const ACCOUNTING_LABELS = {
+  comptabilite: "Comptabilité",
+  "plan-comptable": "Plan comptable",
+  journal: "Journal",
+  "grand-livre": "Grand livre",
+  balance: "Balance",
+  bilan: "Bilan comptable",
+  "compte-resultat": "Compte de résultat",
+  tresorerie: "Trésorerie",
+  rapprochement: "Rapprochement",
+  "tva-taxes": "TVA & Taxes",
+  immobilisations: "Immobilisations",
+  clotures: "Clôtures",
+  ecritures: "Saisie des écritures",
+  bilans: "Bilans",
+  rapports: "Rapports",
+};
+
+const SEARCH_CONFIG = [
+  ["clients", "Clients", "CLIENT_READ", ["id", "code", "nom", "email", "telephone", "ville"]],
+  ["fournisseurs", "Fournisseurs", "ACHAT_READ", ["id", "code", "nom", "email", "telephone", "ville"]],
+  ["achats", "Achats", "ACHAT_READ", ["id", "numero", "statut"]],
+  ["projets", "Projets", "CLIENT_READ", ["id", "reference", "nom", "ville", "statut"]],
+  ["ventes", "Ventes", "VENTE_READ", ["id", "numero", "statut"]],
+  ["facturation", "Factures", "VENTE_READ", ["id", "numero", "statut"]],
+  ["inventaire", "Produits", "STOCK_READ", ["id", "reference", "nom", "statut"]],
+  ["rapports", "Rapports", "RAPPORT_READ", ["id", "reference", "nom", "statut"]],
+];
+
+function GlobalSearch({ can, hasRole, onNavigate }) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [searchType, setSearchType] = useState("all");
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    const term = query.trim();
+    if (term.length < 2) { setResults([]); return undefined; }
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      setSearching(true);
+      const accessible = SEARCH_CONFIG.filter(([tab, , permission]) => (searchType === "all" || tab === searchType) && (canAccessTab(tab, { can, hasRole }) || can(permission)));
+      const found = (await Promise.all(accessible.map(async ([tab, label, , columns]) => {
+        const searchable = columns.filter((column) => column !== "id");
+        const filter = searchable.map((column) => `${column}.ilike.%${term.replace(/[%(),]/g, "")}%`).join(",");
+        const { data } = await supabase.from(tab === "facturation" ? "factures" : tab).select(columns.join(", ")).or(filter).limit(5);
+        return (data || []).map((row) => ({ tab, label, title: row.nom || row.numero || row.reference || row.code, detail: row.email || row.telephone || row.ville || row.statut || "" }));
+      }))).flat();
+      if (active) { setResults(found); setSearching(false); }
+    }, 250);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [can, hasRole, query, searchType]);
+
+  return <div className={open ? "global-search is-open" : "global-search"}><button className="search-toggle" type="button" aria-label="Ouvrir la recherche" onClick={() => setOpen((value) => !value)}><Search size={16} aria-hidden="true" /></button>{open && <select className="search-type" value={searchType} onChange={(event) => setSearchType(event.target.value)} aria-label="Type de recherche"><option value="all">Tout</option>{SEARCH_CONFIG.filter(([tab]) => canAccessTab(tab, { can, hasRole })).map(([tab, label]) => <option value={tab} key={tab}>{label}</option>)}</select>}<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher dans vos accès..." aria-label="Rechercher dans les données autorisées" />{open && query.trim().length >= 2 && <div className="search-results" role="listbox">{searching ? <p className="empty">Recherche...</p> : results.length === 0 ? <p className="empty">Aucun résultat accessible.</p> : results.map((result, index) => <button type="button" key={`${result.tab}-${result.title}-${index}`} onClick={() => { onNavigate(result.tab); setQuery(""); setOpen(false); }}><strong>{result.title}</strong><span>{result.label} · {result.detail}</span></button>)}</div>}</div>;
+}
+
+const RESOURCE_CONFIG = {
+  clients: {
+    title: "Clients",
+    description: "Créez, consultez, modifiez et supprimez les fiches clients autorisées par votre rôle.",
+    table: "clients",
+    nameField: "nom",
+    readPermission: "CLIENT_READ",
+    createPermission: "CLIENT_CREATE",
+    updatePermission: "CLIENT_UPDATE",
+    deletePermission: "CLIENT_DELETE",
+    generatedNumber: { field: "code", prefix: "CLI" },
+    columns: ["id", "code", "nom", "email", "telephone", "ville", "statut"],
+    fields: [
+      { name: "code", label: "Code client", required: true, generated: true },
+      { name: "nom", label: "Nom", required: true },
+      { name: "email", label: "Email", type: "email" },
+      { name: "telephone", label: "Téléphone" },
+      { name: "adresse", label: "Adresse" },
+      { name: "ville", label: "Ville" },
+      { name: "pays", label: "Pays", defaultValue: "Cameroun" },
+      { name: "statut", label: "Statut", defaultValue: "ACTIF" },
+      { name: "observation", label: "Observation", type: "textarea" },
+    ],
+  },
+  fournisseurs: {
+    title: "Fournisseurs",
+    description: "Gérez les coordonnées des fournisseurs selon les permissions d’achat du rôle connecté.",
+    table: "fournisseurs",
+    nameField: "nom",
+    readPermission: "ACHAT_READ",
+    createPermission: "ACHAT_CREATE",
+    updatePermission: "ACHAT_UPDATE",
+    deletePermission: "ACHAT_UPDATE",
+    generatedNumber: { field: "code", prefix: "FOU" },
+    columns: ["id", "code", "nom", "email", "telephone", "ville", "actif"],
+    fields: [
+      { name: "code", label: "Code fournisseur", required: true, generated: true },
+      { name: "nom", label: "Nom", required: true },
+      { name: "email", label: "Email", type: "email" },
+      { name: "telephone", label: "Téléphone" },
+      { name: "adresse", label: "Adresse" },
+      { name: "ville", label: "Ville" },
+      { name: "pays", label: "Pays" },
+      { name: "actif", label: "Actif", type: "checkbox", defaultValue: true },
+    ],
+  },
+  inventaire: {
+    title: "Inventaire",
+    description: "Gérez le catalogue des produits et leurs prix; les mouvements de stock restent soumis à STOCK_CREATE.",
+    table: "produits",
+    nameField: "nom",
+    readPermission: "STOCK_READ",
+    createPermission: "STOCK_CREATE",
+    updatePermission: "STOCK_UPDATE",
+    deletePermission: "STOCK_UPDATE",
+    columns: ["id", "reference", "nom", "unite", "prix_achat", "prix_vente", "actif"],
+    fields: [
+      { name: "reference", label: "Référence", required: true },
+      { name: "nom", label: "Nom du produit", required: true },
+      { name: "description", label: "Description", type: "textarea" },
+      { name: "unite", label: "Unité", defaultValue: "UNITE", required: true },
+      { name: "prix_achat", label: "Prix d’achat", type: "number", min: "0", step: "0.01", defaultValue: "0" },
+      { name: "prix_vente", label: "Prix de vente", type: "number", min: "0", step: "0.01", defaultValue: "0" },
+      { name: "actif", label: "Actif", type: "checkbox", defaultValue: true },
+    ],
+  },
+  achats: {
+    title: "Achats", description: "Créez et suivez les achats fournisseurs autorisés.", table: "achats", nameField: "numero", readPermission: "ACHAT_READ", createPermission: "ACHAT_CREATE", updatePermission: "ACHAT_UPDATE", deletePermission: "ACHAT_UPDATE", generatedNumber: { field: "numero", prefix: "ACH" }, columns: ["id", "numero", "fournisseur_id", "date_achat", "total", "statut"], fields: [{ name: "fournisseur_id", label: "Fournisseur", required: true, relation: { table: "fournisseurs", columns: ["id", "code", "nom"], value: "id", label: "nom" } }, { name: "date_achat", label: "Date", type: "date", required: true }, { name: "sous_total", label: "Sous-total", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "taxe", label: "Taxe", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "total", label: "Total", type: "number", min: "0", step: "0.01", defaultValue: "0" }] },
+  projets: {
+    title: "Projets", description: "Créez et suivez les projets, leur budget et leur avancement.", table: "projets", nameField: "nom", readPermission: "CLIENT_READ", createPermission: "CLIENT_CREATE", updatePermission: "CLIENT_UPDATE", deletePermission: "CLIENT_DELETE", generatedNumber: { field: "reference", prefix: "PRO" }, columns: ["id", "reference", "nom", "client_id", "ville", "budget", "statut", "date_debut"], derivedColumns: [{ name: "actif", label: "Actif", getValue: (row) => row.statut !== "TERMINE" && row.statut !== "SUSPENDU" }], fields: [{ name: "reference", label: "Référence", required: true, generated: true }, { name: "nom", label: "Nom", required: true }, { name: "client_id", label: "Identifiant client", relation: { table: "clients", columns: ["id", "code", "nom"], value: "id", label: "code" } }, { name: "ville", label: "Ville" }, { name: "budget", label: "Budget", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "date_debut", label: "Date de début", type: "date" }, { name: "date_fin_prevue", label: "Date de fin prévue", type: "date" }] },
+  ventes: {
+    title: "Ventes", description: "Créez et suivez les ventes avant leur facturation.", table: "ventes", nameField: "numero", readPermission: "VENTE_READ", createPermission: "VENTE_CREATE", updatePermission: "VENTE_UPDATE", deletePermission: "VENTE_DELETE", generatedNumber: { field: "numero", prefix: "VTE" }, columns: ["id", "numero", "client_id", "date_vente", "total", "statut"], fields: [{ name: "numero", label: "Numéro", required: true, generated: true }, { name: "client_id", label: "Identifiant client", required: true, relation: { table: "clients", columns: ["id", "code", "nom"], value: "id", label: "code" } }, { name: "date_vente", label: "Date", type: "date", required: true }, { name: "sous_total", label: "Sous-total", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "remise", label: "Remise", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "taxe", label: "Taxe", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "total", label: "Total", type: "number", min: "0", step: "0.01", defaultValue: "0" }] },
+  facturation: {
+    title: "Facturation", description: "Créez et suivez les factures clients et leurs échéances.", table: "factures", nameField: "numero", readPermission: "VENTE_READ", createPermission: "VENTE_CREATE", updatePermission: "VENTE_UPDATE", deletePermission: "VENTE_DELETE", generatedNumber: { field: "numero", prefix: "FAC" }, columns: ["id", "numero", "vente_id", "client_id", "date_facture", "date_echeance", "montant_ttc", "montant_paye", "reste_a_payer", "statut"], fields: [{ name: "vente_id", label: "Identifiant vente", required: true, relation: { table: "ventes", columns: ["id", "numero", "client_id"], value: "id", label: "numero", syncFields: [{ target: "client_id", source: "client_id" }] } }, { name: "client_id", label: "Identifiant client", required: true, relation: { table: "clients", columns: ["id", "code", "nom"], value: "id", label: "code", disabled: true } }, { name: "date_facture", label: "Date", type: "date", required: true }, { name: "date_echeance", label: "Échéance", type: "date" }, { name: "montant_ht", label: "Montant HT", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "taxe", label: "Taxe", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "montant_ttc", label: "Montant TTC", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "montant_paye", label: "Montant payé", type: "number", min: "0", step: "0.01", defaultValue: "0" }, { name: "reste_a_payer", label: "Reste à payer", type: "number", min: "0", step: "0.01", defaultValue: "0" }] },
+  comptabilite: { title: "Comptabilité", description: "Saisissez, contrôlez et validez les écritures comptables de l’entreprise.", table: "ecritures_comptables", permission: "COMPTA_READ", columns: ["numero", "date_ecriture", "libelle", "statut"] },
+  bilans: { title: "Bilans", description: "Générez et consultez les bilans par exercice comptable.", table: "bilans", permission: "BILAN_READ", columns: ["exercice_id", "date_generation", "total_actif", "total_passif", "resultat", "statut"] },
+  rapports: { title: "Rapports financiers", description: "Créez et consultez les rapports financiers sur une période définie.", table: "rapports_financiers", permission: "RAPPORT_READ", columns: ["reference", "nom", "date_debut", "date_fin", "solde_final", "statut"] },
+};
+
+const ROLE_ORDER = ["ADMIN", "GERANT", "COMPTABLE", "CONSULTANT", "MAGASINIER", "AGENT_COMMERCIAL"];
+
+const COMPTABLE_TASKS = [
+  ["COMPTA_READ", "Consulter comptabilité"],
+  ["COMPTA_CREATE", "Créer écriture"],
+  ["COMPTA_VALIDATE", "Valider écriture"],
+  ["BILAN_READ", "Consulter bilan"],
+  ["BILAN_GENERATE", "Générer bilan"],
+  ["RAPPORT_READ", "Consulter rapports"],
+  ["RAPPORT_CREATE", "Créer rapport"],
+  ["COMPTA_PLAN_CREATE", "Modifier le plan comptable"],
+  ["COMPTA_TRESORERIE", "Gérer la trésorerie"],
+  ["COMPTA_RAPPROCHEMENT", "Gérer les rapprochements"],
+  ["COMPTA_FISCALITE", "Gérer la fiscalité"],
+  ["COMPTA_IMMOBILISATION", "Gérer les immobilisations"],
+  ["COMPTA_CLOTURE", "Gérer les clôtures"],
+];
+
+class ProfileErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error) {
+      return <section className="content-panel profile-error-panel"><p className="section-kicker">Profil</p><h2>Le profil n’a pas pu être affiché</h2><p className="message error">{this.state.error.message || "Erreur inattendue lors du rendu du profil."}</p><button className="primary-button" type="button" onClick={() => window.location.reload()}>Recharger le profil</button></section>;
+    }
+    return this.props.children;
+  }
+}
+
+function displayValue(value) {
+  if (typeof value === "boolean") return value ? "Oui" : "Non";
+  if (value === null || value === undefined || value === "") return "-";
+  if (typeof value === "number") return value.toLocaleString("fr-FR");
+  return String(value);
+}
+
+function titleForColumn(column) {
+  return column.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function RoleDashboard({ roles, onNavigate, can, stats, loading }) {
+  const hasRole = (role) => roles.some(({ code }) => code === role);
+  const props = { onNavigate, can, stats, loading };
+  if (hasRole("ADMIN")) return <AdminDashboard {...props} />;
+  if (hasRole("GERANT")) return <GerantDashboard {...props} />;
+  if (hasRole("COMPTABLE")) return <ComptableDashboard {...props} />;
+  if (hasRole("AGENT_COMMERCIAL")) return <AgentCommercialDashboard {...props} />;
+  if (hasRole("MAGASINIER")) return <MagasinierDashboard {...props} />;
+  return <ConsultantDashboard {...props} />;
+}
+
+function getTabFromPath() {
+  return window.location.pathname.replace(/^\/+|\/+$/g, "") || "dashboard";
+}
+
+function ComptableTaskPanel({ can }) {
+  return (
+    <section className="task-panel">
+      <div><p className="section-kicker">Droits du rôle actif</p><h2>Actions comptables autorisées</h2><p>Les droits sont lus depuis <strong>role_permissions</strong>. Supabase reste l’autorité lors de chaque opération.</p></div>
+      <div className="task-list">{COMPTABLE_TASKS.map(([code, label]) => <span className={can(code) ? "task-item allowed" : "task-item denied"} key={code}><i>{can(code) ? "✓" : "–"}</i>{label}</span>)}</div>
+    </section>
+  );
+}
+
+function ResourceView({ resource, onReload, can }) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadRows() {
+      setLoading(true);
+      const { data, error: requestError } = await supabase
+        .from(resource.table)
+        .select(resource.columns.join(", "))
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (!isMounted) return;
+      setRows(data || []);
+      setError(requestError?.message || null);
+      setLoading(false);
+    }
+    loadRows();
+    return () => { isMounted = false; };
+  }, [resource, onReload]);
+
+  return (
+    <>
+    {resource.table === "ecritures_comptables" && <ComptableTaskPanel can={can} />}
+    <section className="content-panel">
+      <div className="section-heading">
+        <div><p className="section-kicker">Données Supabase · {resource.permission || "ACCÈS RÔLE"}</p><h2>{resource.title}</h2><p className="panel-description">{resource.description}</p></div>
+        <span className="record-count">{rows.length} affiché{rows.length > 1 ? "s" : ""}</span>
+      </div>
+      <div className="resource-guide"><strong>À quoi sert cet onglet ?</strong><span>{resource.guide || resource.description}</span></div>
+      {error && <p className="message error">Erreur de lecture : {error}</p>}
+      {loading ? <p className="empty">Chargement…</p> : rows.length === 0 ? <p className="empty">Aucune donnée accessible pour ce rôle.</p> : (
+        <div className="table-scroll"><table className="data-table"><thead><tr>{resource.columns.map((column) => <th key={column}>{titleForColumn(column)}</th>)}</tr></thead>
+          <tbody>{rows.map((row) => <tr key={row.id || row.numero || row.reference}>{resource.columns.map((column) => <td key={column}>{displayValue(row[column])}</td>)}</tr>)}</tbody>
+        </table></div>
+      )}
+    </section>
+    </>
+  );
+}
+
+function AdminAccessView({ roles, rolePermissions, can }) {
+  const [users, setUsers] = useState([]);
+  const [userRoles, setUserRoles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [savingUser, setSavingUser] = useState(null);
+  const [availableRoles, setAvailableRoles] = useState([]);
+  const [selectedRoles, setSelectedRoles] = useState({});
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedRoleIds, setSelectedRoleIds] = useState([]);
+  const [confirmation, setConfirmation] = useState(null);
+
+  function requestConfirmation(title, description, action) {
+    setConfirmation({ title, description, action });
+  }
+
+  function ConfirmDialog() {
+    if (!confirmation) return null;
+    return createPortal(<div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setConfirmation(null); }}><div className="success-dialog admin-confirm-dialog" role="dialog" aria-modal="true" aria-label="Confirmer la modification"><h2>{confirmation.title}</h2><p>{confirmation.description}</p><div className="form-actions"><button className="btn-secondary" type="button" onClick={() => setConfirmation(null)}>Annuler</button><button className="primary-button" type="button" onClick={async () => { const action = confirmation.action; setConfirmation(null); await action(); }}>Confirmer la modification</button></div></div></div>, document.body);
+  }
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadAdministration() {
+      const [profilesResult, rolesResult, availableRolesResult] = await Promise.all([
+        supabase.from("profiles").select("id, nom, prenom, telephone, actif, created_at").order("created_at", { ascending: true }),
+        supabase.from("user_roles").select("user_id, role_id, role:roles(code, nom)"),
+        supabase.from("roles").select("id, code, nom").order("nom"),
+      ]);
+      if (!isMounted) return;
+      if (profilesResult.error || rolesResult.error || availableRolesResult.error) setError((profilesResult.error || rolesResult.error || availableRolesResult.error).message);
+      setUsers(profilesResult.data || []);
+      setUserRoles(rolesResult.data || []);
+      setAvailableRoles(availableRolesResult.data || []);
+      setLoading(false);
+    }
+    loadAdministration();
+    return () => { isMounted = false; };
+  }, []);
+
+  const rolesForUser = (userId) => userRoles.filter((item) => item.user_id === userId).map((item) => item.role?.nom).filter(Boolean).join(", ");
+  const selectedUser = users.find((user) => user.id === selectedUserId);
+  const assignedRoleIds = userRoles.filter((item) => item.user_id === selectedUserId).map((item) => item.role_id);
+  const assignableRoles = availableRoles.filter((role) => !assignedRoleIds.includes(role.id));
+
+  function selectUser(userId) {
+    setSelectedUserId(userId);
+    setSelectedRoleIds([]);
+    setError(null);
+  }
+
+  async function toggleUser(user) {
+    if (!can("USER_MANAGE")) return;
+    requestConfirmation(user.actif ? "Désactiver cet utilisateur ?" : "Activer cet utilisateur ?", `Le compte de ${user.prenom || "cet utilisateur"} sera ${user.actif ? "désactivé" : "activé"}.`, async () => {
+      setSavingUser(user.id);
+      const { error: updateError } = await supabase.from("profiles").update({ actif: !user.actif }).eq("id", user.id);
+      setSavingUser(null);
+      if (updateError) setError(updateError.message);
+      else setUsers((current) => current.map((item) => item.id === user.id ? { ...item, actif: !user.actif } : item));
+    });
+  }
+
+  async function assignRole(userId) {
+    const roleId = selectedRoles[userId];
+    if (!roleId || !can("USER_MANAGE")) return;
+    const role = availableRoles.find((item) => item.id === roleId);
+    requestConfirmation("Attribuer ce rôle ?", `Le rôle ${role?.nom || "sélectionné"} sera attribué à cet utilisateur.`, async () => {
+      setError(null);
+      const { error: insertError } = await supabase.from("user_roles").insert({ user_id: userId, role_id: roleId });
+      if (insertError) { setError(insertError.message); return; }
+      setUserRoles((current) => [...current, { user_id: userId, role: role || null }]);
+      setSelectedRoles((current) => ({ ...current, [userId]: "" }));
+    });
+  }
+
+  async function assignSelectedRoles(event) {
+    event.preventDefault();
+    if (!selectedUserId || !selectedRoleIds.length || !can("USER_MANAGE")) return;
+    const selectedNames = selectedRoleIds.map((roleId) => availableRoles.find((role) => role.id === roleId)?.nom).filter(Boolean).join(", ");
+    requestConfirmation("Attribuer les rôles sélectionnés ?", `Les rôles ${selectedNames} seront attribués à l'utilisateur choisi.`, async () => {
+      setSavingUser(selectedUserId);
+      setError(null);
+      const { error: insertError } = await supabase.from("user_roles").insert(selectedRoleIds.map((roleId) => ({ user_id: selectedUserId, role_id: roleId })));
+      setSavingUser(null);
+      if (insertError) { setError(`Attribution refusée par Supabase/RLS : ${insertError.message}`); return; }
+      const assignedRoles = selectedRoleIds.map((roleId) => ({ user_id: selectedUserId, role_id: roleId, role: availableRoles.find((role) => role.id === roleId) || null }));
+      setUserRoles((current) => [...current, ...assignedRoles]);
+      setSelectedRoleIds([]);
+    });
+  }
+
+  async function removeRole(userId, roleCode) {
+    if (!can("USER_MANAGE")) return;
+    const role = availableRoles.find((item) => item.code === roleCode);
+    if (!role) return;
+    requestConfirmation("Révoquer ce rôle ?", `Le rôle ${role.nom} sera retiré de cet utilisateur.`, async () => {
+      setError(null);
+      const { error: deleteError } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role_id", role.id);
+      if (deleteError) { setError(`Révocation refusée par Supabase/RLS : ${deleteError.message}`); return; }
+      setUserRoles((current) => current.filter((item) => !(item.user_id === userId && item.role?.code === roleCode)));
+      if (selectedUserId === userId) setSelectedRoleIds((current) => current.filter((roleId) => roleId !== role.id));
+    });
+  }
+
+  return (
+    <><ConfirmDialog /><div className="admin-grid">
+      <section className="content-panel admin-users-panel">
+        <div className="section-heading"><div><p className="section-kicker">Administration · USER_READ / USER_MANAGE</p><h2>Utilisateurs & rôles</h2><p className="panel-description">Consultez les comptes, leurs rôles et leur statut d’activité. Les changements de rôle restent soumis aux règles de sécurité Supabase.</p></div><span className="record-count">{users.length} profil{users.length > 1 ? "s" : ""}</span></div>
+        <div className="policy-note"><strong>Lecture sécurisée</strong><span>Les profils et rôles affichés proviennent de Supabase. L’attribution reste contrôlée par les policies RLS existantes.</span></div>
+        {error && <p className="message error">Erreur de lecture : {error}</p>}
+        {can("USER_MANAGE") && <form className="role-manager" onSubmit={assignSelectedRoles}><label><span>Utilisateur de la plateforme</span><select value={selectedUserId} onChange={(event) => selectUser(event.target.value)}><option value="">Sélectionner un utilisateur</option>{users.map((user) => <option value={user.id} key={user.id}>{`${user.prenom || ""} ${user.nom || ""}`.trim() || "Profil sans nom"} · {user.actif ? "Actif" : "Inactif"}</option>)}</select></label><div className="role-picker"><span>Rôles à attribuer</span>{!selectedUserId ? <small>Sélectionnez d’abord un utilisateur.</small> : assignableRoles.length === 0 ? <small>Cet utilisateur possède déjà tous les rôles disponibles.</small> : <div className="role-checkboxes">{assignableRoles.map((role) => <label key={role.id}><input type="checkbox" checked={selectedRoleIds.includes(role.id)} onChange={(event) => setSelectedRoleIds((current) => event.target.checked ? [...current, role.id] : current.filter((id) => id !== role.id))} />{role.nom}</label>)}</div>}</div><button className="primary-button" type="submit" disabled={!selectedUser || !selectedRoleIds.length || savingUser === selectedUserId}>{savingUser === selectedUserId ? "Enregistrement..." : "Attribuer les rôles sélectionnés"}</button></form>}
+        {loading ? <p className="empty">Chargement…</p> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Utilisateur</th><th>Contact</th><th>Rôle</th><th>Statut</th>{can("USER_MANAGE") && <th>Opérations</th>}</tr></thead><tbody>{users.map((user) => <tr key={user.id}><td><strong>{`${user.prenom || ""} ${user.nom || ""}`.trim() || "Profil sans nom"}</strong><small>{user.id}</small></td><td>{displayValue(user.telephone)}</td><td><div className="role-assignment">{userRoles.filter((item) => item.user_id === user.id && item.role).map((item) => <button className="role-badge" type="button" key={item.role.code} title="Retirer ce rôle" onClick={() => removeRole(user.id, item.role.code)}>{item.role.nom} ×</button>)}{!rolesForUser(user.id) && <span className="muted">Aucun rôle</span>}{can("USER_MANAGE") && <div className="role-assignment-controls"><select value={selectedRoles[user.id] || ""} onChange={(event) => setSelectedRoles((current) => ({ ...current, [user.id]: event.target.value }))}><option value="">Ajouter un rôle</option>{availableRoles.filter((role) => !userRoles.some((item) => item.user_id === user.id && item.role?.code === role.code)).map((role) => <option value={role.id} key={role.id}>{role.nom}</option>)}</select><button className="link-button" type="button" onClick={() => assignRole(user.id)}>Attribuer</button></div>}</div></td><td><span className={`status-dot ${user.actif ? "is-active" : "is-inactive"}`}>{user.actif ? "Actif" : "Inactif"}</span></td>{can("USER_MANAGE") && <td><button className="link-button" type="button" disabled={savingUser === user.id} onClick={() => toggleUser(user)}>{user.actif ? "Désactiver" : "Activer"}</button></td>}</tr>)}</tbody></table></div>}
+      </section>
+      <section className="content-panel permissions-panel"><div className="section-heading"><div><p className="section-kicker">Référentiel Supabase</p><h2>Privilèges par rôle</h2></div></div><div className="role-list">{[...roles].sort((a, b) => ROLE_ORDER.indexOf(a.code) - ROLE_ORDER.indexOf(b.code)).map((role) => <article className="role-card" key={role.id}><div><span className="role-code">{role.code}</span><h3>{role.nom}</h3><p>{role.description || "Aucune description"}</p></div><div className="permission-list">{(rolePermissions[role.id] || []).length ? rolePermissions[role.id].map((permission) => <span key={permission.code} title={permission.description}>{permission.nom}</span>) : <span className="muted">Aucun privilège enregistré dans la base.</span>}</div></article>)}</div></section>
+    </div></>
+  );
+}
+
+export default function Dashboard() {
+  const { profile, roles, permissions, rolePermissions, hasRole, can, signOut, updateProfile } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const [activeTab, setActiveTab] = useState(getTabFromPath);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(activeTab === "configuration");
+  const isAccountingUser = hasRole("COMPTABLE") && !hasRole("ADMIN") && !hasRole("GERANT");
+  const { data: dashboardData, isLoading: loading, error: queryError } = useDashboardData(isAccountingUser);
+  const stats = dashboardData?.stats || { clients: 0, fournisseurs: 0, projets: 0, ventes: 0, achats: 0, produits: 0, factures: 0, chiffreAffaires: 0, resteAPayer: 0, comptes: 0, ecritures: 0, bilans: 0, rapports: 0 };
+  const factures = dashboardData?.factures || [];
+  const ventes = dashboardData?.ventes || [];
+  const metricErrors = dashboardData?.metricErrors || [];
+  const error = queryError?.message || null;
+
+  const visibleNav = NAV_ITEMS.filter((item) => item.id !== "configuration" && (item.id === "dashboard" || canAccessTab(item.id, { can, hasRole })));
+
+  useEffect(() => {
+    function syncTab() {
+      setActiveTab(getTabFromPath());
+    }
+    window.addEventListener("popstate", syncTab);
+    return () => window.removeEventListener("popstate", syncTab);
+  }, []);
+
+  useEffect(() => {
+    const isNestedAccountingRoute = Boolean(ACCOUNTING_LABELS[activeTab]);
+    const isAdminRoute = activeTab === "configuration" && hasRole("ADMIN");
+    if (!visibleNav.some((item) => item.id === activeTab) && !isNestedAccountingRoute && !isAdminRoute) {
+      window.history.replaceState({}, "", "/dashboard");
+      setActiveTab("dashboard");
+    }
+  }, [activeTab, visibleNav, hasRole]);
+
+  function navigateToTab(tabId) {
+    if (tabId === activeTab) return;
+    window.history.pushState({}, "", `/${tabId}`);
+    setActiveTab(tabId);
+    setMobileNavOpen(false);
+    if (tabId === "configuration") setAdminMenuOpen(true);
+  }
+
+  function renderContent() {
+    if (activeTab === "dashboard") return <><RoleDashboard roles={roles} onNavigate={navigateToTab} can={can} stats={stats} loading={loading} /><DashboardOverview loading={loading} error={error} metricErrors={metricErrors} stats={stats} factures={factures} ventes={ventes} isAccountingUser={isAccountingUser} /></>;
+    if (activeTab === "profile") return <ProfileErrorBoundary><PersonalSettings profile={profile} roles={roles} onSaved={updateProfile} onSignOut={signOut} /></ProfileErrorBoundary>;
+    if (activeTab === "configuration" && hasRole("ADMIN")) return <><AdminControlCenter can={can} onNavigate={navigateToTab} /><AdminAccessView roles={roles} rolePermissions={rolePermissions} can={can} /></>;
+    if (["ecritures", "bilans", "rapports", "comptabilite", "plan-comptable", "journal", "grand-livre", "balance", "bilan", "compte-resultat", "tresorerie", "rapprochement", "tva-taxes", "immobilisations", "clotures", "nouveau-compte", "nouvelle-immobilisation"].includes(activeTab)) return <div className="accounting-light"><ComptabiliteWorkspace section={activeTab === "ecritures" ? "ecritures" : activeTab === "bilans" ? "bilans" : activeTab === "rapports" ? "rapports" : activeTab} session={{ user: { id: profile?.id } }} can={can} onNavigate={navigateToTab} /></div>;
+    const resource = RESOURCE_CONFIG[activeTab];
+    const currentNavItem = NAV_ITEMS.find((item) => item.id === activeTab);
+    const hasTabAccess = currentNavItem && canAccessTab(activeTab, { can, hasRole }) && (!resource?.permission || can(resource.permission));
+    if (resource && hasTabAccess) {
+      if (resource.fields) return <ResourceWorkspace resource={resource} can={can} />;
+      return <ResourceView resource={resource} onReload={activeTab} can={can} />;
+    }
+    return <section className="content-panel"><p className="empty">Cette rubrique n’est pas disponible pour votre rôle.</p></section>;
+  }
+
+  return (
+    <div className="app-shell">
+      <GlobalSearch can={can} hasRole={hasRole} onNavigate={navigateToTab} />
+      <button className="mobile-menu-toggle" type="button" aria-label={mobileNavOpen ? "Fermer le menu" : "Ouvrir le menu"} onClick={() => setMobileNavOpen((open) => !open)}>{mobileNavOpen ? <X size={20} /> : <Menu size={20} />}</button><aside className={mobileNavOpen ? "sidebar is-open" : "sidebar"}><div className="brand"><span className="brand-mark-small">C</span><div><strong>CIPRESA</strong><small>Plateforme Comptable</small></div></div><nav aria-label="Navigation principale">{visibleNav.map((item) => <button className={activeTab === item.id ? "nav-item active" : "nav-item"} type="button" aria-current={activeTab === item.id ? "page" : undefined} key={item.id} onClick={() => navigateToTab(item.id)}><item.icon className="nav-icon" aria-hidden="true" />{item.label}</button>)}{hasRole("ADMIN") && <div className="nav-group"><button className={activeTab === "configuration" ? "nav-item active nav-group-toggle" : "nav-item nav-group-toggle"} type="button" aria-expanded={adminMenuOpen} onClick={() => setAdminMenuOpen((open) => !open)}><Settings className="nav-icon" aria-hidden="true" /><span>Admin</span><ChevronDown className={adminMenuOpen ? "nav-chevron is-open" : "nav-chevron"} size={15} aria-hidden="true" /></button>{adminMenuOpen && <div className="nav-submenu"><button className={activeTab === "configuration" ? "nav-subitem active" : "nav-subitem"} type="button" onClick={() => navigateToTab("configuration")}><Settings size={14} aria-hidden="true" />Configuration</button></div>}</div>}</nav><div className="sidebar-user">{profile?.photo_url ? <img className="avatar avatar-image" src={profile.photo_url} alt="" /> : <span className="avatar">{(profile?.prenom || profile?.nom || "U").charAt(0).toUpperCase()}</span>}<div><strong>{`${profile?.prenom || ""} ${profile?.nom || ""}`.trim() || "Utilisateur"}</strong><small>{roles.map(({ nom }) => nom).join(" · ")}</small></div></div></aside>
+      <main className="main-area"><header className="topbar"><div className="search-box">⌕ <span>Rechercher...</span></div><div className="topbar-actions"><button className="icon-button theme-toggle" type="button" title={theme === "dark" ? "Activer le mode clair" : "Activer le mode sombre"} aria-label={theme === "dark" ? "Activer le mode clair" : "Activer le mode sombre"} onClick={toggleTheme}>{theme === "dark" ? "☼" : "◐"}</button></div></header><div className="page-content">{["comptabilite", "plan-comptable", "journal", "grand-livre", "balance", "bilan", "compte-resultat", "tresorerie", "rapprochement", "tva-taxes", "immobilisations", "clotures", "ecritures", "bilans", "rapports", "nouveau-compte", "nouvelle-immobilisation"].includes(activeTab) ? renderContent() : <><div className="page-title"><div><p className="section-kicker">Données en temps réel · v_tableau_bord</p><h1>{activeTab === "dashboard" ? "Aperçu financier" : ACCOUNTING_LABELS[activeTab] || NAV_ITEMS.find((item) => item.id === activeTab)?.label || "Administration"}</h1><p className="subtitle">{roles.map(({ nom }) => nom).join(", ")} · {permissions.length} permission{permissions.length > 1 ? "s" : ""}</p></div><div className="page-actions"><button className="outline-button">▣ Ce mois</button>{can("RAPPORT_CREATE") && <button className="primary-button">Générer Rapport</button>}</div></div>{renderContent()}</>}</div></main>
+    </div>
+  );
+}
+
+function DashboardOverview({ loading, error, metricErrors, stats, factures, ventes }) {
+  return <>{error && <p className="message error">Erreur de chargement : {error}</p>}{!error && metricErrors.length > 0 && <p className="message warning">Certaines métriques ne sont pas disponibles avec les policies RLS actuelles. L’espace comptable reste accessible.</p>}{loading ? <p className="empty">Chargement des données…</p> : <><section className="stats-grid"><StatCard label="Clients" value={stats.clients.toLocaleString("fr-FR")} hint="Lignes autorisées par RLS" /><StatCard label="Fournisseurs" value={stats.fournisseurs.toLocaleString("fr-FR")} hint="Référentiel Supabase" /><StatCard label="Projets" value={stats.projets.toLocaleString("fr-FR")} hint="Portefeuille accessible" /><StatCard label="Ventes" value={stats.ventes.toLocaleString("fr-FR")} hint="Transactions accessibles" /><StatCard label="Factures" value={stats.factures.toLocaleString("fr-FR")} hint="Documents accessibles" /><StatCard label="Chiffre d’affaires" value={`${stats.chiffreAffaires.toLocaleString("fr-FR")} XAF`} hint="Total des ventes visibles" /><StatCard label="Créances clients" value={`${stats.resteAPayer.toLocaleString("fr-FR")} XAF`} hint="Factures des six derniers mois" /><StatCard label="Produits" value={stats.produits.toLocaleString("fr-FR")} hint="Catalogue accessible" /></section><DashboardCharts invoices={factures} sales={ventes} /><FacturesDataTable factures={factures} /></>}</>;
+}
