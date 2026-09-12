@@ -976,3 +976,118 @@ body {
   .accounting-light .entry-form-card .form-actions { display: grid; grid-template-columns: 1fr; }
   .accounting-light .entry-form-card .form-actions button { width: 100%; }
 }
+
+  /* Thème sombre global : aucune surface d'interface ne doit rester blanche. */
+  [data-theme="dark"] {
+    --bg: #101815;
+    color-scheme: dark;
+  }
+
+  [data-theme="dark"] body {
+    background: #101815;
+    color: #e4eee8;
+  }
+
+  [data-theme="dark"] .app-shell,
+  [data-theme="dark"] .access-denied {
+    background: #101815;
+    color: #e4eee8;
+  }
+
+  [data-theme="dark"] .sidebar,
+  [data-theme="dark"] .panel,
+  [data-theme="dark"] .content-panel,
+  [data-theme="dark"] .stat-card,
+  [data-theme="dark"] .login-card,
+  [data-theme="dark"] .topbar,
+  [data-theme="dark"] .admin-operation,
+  [data-theme="dark"] .task-item,
+  [data-theme="dark"] .role-checkboxes label,
+  [data-theme="dark"] .role-card,
+  [data-theme="dark"] .settings-form input,
+  [data-theme="dark"] .settings-form select,
+  [data-theme="dark"] .accounting-form input,
+  [data-theme="dark"] .accounting-form select,
+  [data-theme="dark"] .accounting-period,
+  [data-theme="dark"] .accounting-toolbar select,
+  [data-theme="dark"] .accounting-search input,
+  [data-theme="dark"] .chart-panel,
+  [data-theme="dark"] .workflow-action,
+  [data-theme="dark"] .accounting-module-card {
+    background: #17251d;
+    color: #e4eee8;
+    border-color: #365542;
+  }
+
+  [data-theme="dark"] .brand,
+  [data-theme="dark"] .topbar {
+    background: #142119;
+    border-color: #294435;
+  }
+
+  [data-theme="dark"] .nav-item:hover,
+  [data-theme="dark"] .nav-subitem:hover,
+  [data-theme="dark"] .quick-action:hover,
+  [data-theme="dark"] .admin-operation:hover:not(:disabled) {
+    background: #203b2c;
+  }
+
+  [data-theme="dark"] .nav-item.active,
+  [data-theme="dark"] .nav-subitem.active {
+    background: #28523a;
+    color: #e4f3e8;
+  }
+
+  [data-theme="dark"] .search-box,
+  [data-theme="dark"] .quick-action,
+  [data-theme="dark"] .role-manager,
+  [data-theme="dark"] .policy-note,
+  [data-theme="dark"] .kpi-card-mini,
+  [data-theme="dark"] .notice-grid > div {
+    background: #1b2d23;
+    color: #d0e3d5;
+    border-color: #365542;
+  }
+
+  [data-theme="dark"] .icon-button,
+  [data-theme="dark"] .profile-button,
+  [data-theme="dark"] .outline-button,
+  [data-theme="dark"] .accounting-light .btn-secondary {
+    background: #17251d;
+    color: #d7e9dc;
+    border-color: #365542;
+  }
+
+  [data-theme="dark"] .page-title h1,
+  [data-theme="dark"] .content-panel h2,
+  [data-theme="dark"] .panel h2,
+  [data-theme="dark"] .accounting-header h2,
+  [data-theme="dark"] .accounting-report-title,
+  [data-theme="dark"] .role-hero h2,
+  [data-theme="dark"] .task-panel h2,
+  [data-theme="dark"] .role-card h3,
+  [data-theme="dark"] .stat-value,
+  [data-theme="dark"] .admin-operation strong {
+    color: #e4f3e8;
+  }
+
+  [data-theme="dark"] .data-table th {
+    background: #1b2d23;
+    color: #b8d8c0;
+    border-color: #365542;
+  }
+
+  [data-theme="dark"] .data-table td {
+    color: #d0e3d5;
+    border-color: #294435;
+  }
+
+  [data-theme="dark"] .data-table tbody tr:hover {
+    background: #203b2c;
+  }
+
+  [data-theme="dark"] .role-hero,
+  [data-theme="dark"] .task-panel {
+    background: linear-gradient(120deg, #1c3726, #17251d);
+    border-color: #386148;
+  }

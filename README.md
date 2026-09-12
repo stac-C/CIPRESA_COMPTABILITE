@@ -30,7 +30,7 @@ copy .env.example .env
 npm run dev
 ```
 
-L'application est disponible sur `http://localhost:5173`.
+L'application est disponible sur `http://127.0.0.1:3000`.
 
 Pour produire le bundle de production:
 

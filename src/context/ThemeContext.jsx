@@ -3,25 +3,39 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 const ThemeContext = createContext(null);
 const STORAGE_KEY = "cipresa-theme";
 
-function getInitialTheme() {
+function getInitialThemePreference() {
   const savedTheme = window.localStorage.getItem(STORAGE_KEY);
-  if (savedTheme === "light" || savedTheme === "dark") return savedTheme;
+  return ["light", "dark", "system"].includes(savedTheme) ? savedTheme : "system";
+}
+
+function resolveTheme(preference) {
+  if (preference !== "system") return preference;
   return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(getInitialTheme);
+  const [themePreference, setThemePreference] = useState(getInitialThemePreference);
+  const [theme, setTheme] = useState(() => resolveTheme(getInitialThemePreference()));
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    window.localStorage.setItem(STORAGE_KEY, theme);
-  }, [theme]);
+    function applyTheme() {
+      setTheme(resolveTheme(themePreference));
+    }
+    applyTheme();
+    window.localStorage.setItem(STORAGE_KEY, themePreference);
+    if (themePreference !== "system" || !window.matchMedia) return undefined;
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    mediaQuery.addEventListener?.("change", applyTheme);
+    return () => mediaQuery.removeEventListener?.("change", applyTheme);
+  }, [themePreference]);
 
-  function toggleTheme() {
-    setTheme((current) => current === "dark" ? "light" : "dark");
-  }
+  useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
 
-  return <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>{children}</ThemeContext.Provider>;
+  function setThemePreferenceAndPersist(preference) { setThemePreference(preference); }
+
+  function toggleTheme() { setThemePreference(theme === "dark" ? "light" : "dark"); }
+
+  return <ThemeContext.Provider value={{ theme, themePreference, setTheme: setThemePreferenceAndPersist, toggleTheme }}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {

@@ -228,6 +228,16 @@ function RoleDashboard({ roles, onNavigate, can, stats, loading }) {
   return <ConsultantDashboard {...props} />;
 }
 
+function ProfileMenu({ profile, roles, open, onToggle, onProfile, onSignOut }) {
+  return <div className="profile-menu-wrap">
+    <button className="sidebar-user" type="button" aria-expanded={open} aria-haspopup="menu" onClick={onToggle}>
+      {profile?.photo_url ? <img className="avatar avatar-image" src={profile.photo_url} alt="" /> : <span className="avatar">{(profile?.prenom || profile?.nom || "U").charAt(0).toUpperCase()}</span>}
+      <span><strong>{`${profile?.prenom || ""} ${profile?.nom || ""}`.trim() || "Utilisateur"}</strong><small>{roles.map(({ nom }) => nom).join(" · ")}</small></span>
+    </button>
+      {open && <div className="profile-menu" role="menu"><button type="button" role="menuitem" onClick={onProfile}><Contact size={15} /> Accéder au profil</button><button type="button" role="menuitem" onClick={onSignOut}><X size={15} /> Se déconnecter</button></div>}
+  </div>;
+}
+
 function getTabFromPath() {
   return window.location.pathname.replace(/^\/+|\/+$/g, "") || "dashboard";
 }
@@ -434,6 +444,7 @@ export default function Dashboard() {
       setActiveTab("dashboard");
     }
   }, [activeTab, visibleNav, hasRole]);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   function navigateToTab(tabId) {
     if (tabId === activeTab) return;
@@ -442,6 +453,10 @@ export default function Dashboard() {
     setMobileNavOpen(false);
     if (tabId === "configuration") setAdminMenuOpen(true);
   }
+    function navigateToProfile() {
+      setProfileMenuOpen(false);
+      navigateToTab("profile");
+    }
 
   function renderContent() {
     if (activeTab === "dashboard") return <><RoleDashboard roles={roles} onNavigate={navigateToTab} can={can} stats={stats} loading={loading} /><DashboardOverview loading={loading} error={error} metricErrors={metricErrors} stats={stats} factures={factures} ventes={ventes} isAccountingUser={isAccountingUser} /></>;
@@ -461,6 +476,7 @@ export default function Dashboard() {
   return (
     <div className="app-shell">
       <GlobalSearch can={can} hasRole={hasRole} onNavigate={navigateToTab} />
+      <ProfileMenu profile={profile} roles={roles} open={profileMenuOpen} onToggle={() => setProfileMenuOpen((open) => !open)} onProfile={navigateToProfile} onSignOut={signOut} />
       <button className="mobile-menu-toggle" type="button" aria-label={mobileNavOpen ? "Fermer le menu" : "Ouvrir le menu"} onClick={() => setMobileNavOpen((open) => !open)}>{mobileNavOpen ? <X size={20} /> : <Menu size={20} />}</button><aside className={mobileNavOpen ? "sidebar is-open" : "sidebar"}><div className="brand"><span className="brand-mark-small">C</span><div><strong>CIPRESA</strong><small>Plateforme Comptable</small></div></div><nav aria-label="Navigation principale">{visibleNav.map((item) => <button className={activeTab === item.id ? "nav-item active" : "nav-item"} type="button" aria-current={activeTab === item.id ? "page" : undefined} key={item.id} onClick={() => navigateToTab(item.id)}><item.icon className="nav-icon" aria-hidden="true" />{item.label}</button>)}{hasRole("ADMIN") && <div className="nav-group"><button className={activeTab === "configuration" ? "nav-item active nav-group-toggle" : "nav-item nav-group-toggle"} type="button" aria-expanded={adminMenuOpen} onClick={() => setAdminMenuOpen((open) => !open)}><Settings className="nav-icon" aria-hidden="true" /><span>Admin</span><ChevronDown className={adminMenuOpen ? "nav-chevron is-open" : "nav-chevron"} size={15} aria-hidden="true" /></button>{adminMenuOpen && <div className="nav-submenu"><button className={activeTab === "configuration" ? "nav-subitem active" : "nav-subitem"} type="button" onClick={() => navigateToTab("configuration")}><Settings size={14} aria-hidden="true" />Configuration</button></div>}</div>}</nav><div className="sidebar-user">{profile?.photo_url ? <img className="avatar avatar-image" src={profile.photo_url} alt="" /> : <span className="avatar">{(profile?.prenom || profile?.nom || "U").charAt(0).toUpperCase()}</span>}<div><strong>{`${profile?.prenom || ""} ${profile?.nom || ""}`.trim() || "Utilisateur"}</strong><small>{roles.map(({ nom }) => nom).join(" · ")}</small></div></div></aside>
       <main className="main-area"><header className="topbar"><div className="search-box">⌕ <span>Rechercher...</span></div><div className="topbar-actions"><button className="icon-button theme-toggle" type="button" title={theme === "dark" ? "Activer le mode clair" : "Activer le mode sombre"} aria-label={theme === "dark" ? "Activer le mode clair" : "Activer le mode sombre"} onClick={toggleTheme}>{theme === "dark" ? "☼" : "◐"}</button></div></header><div className="page-content">{["comptabilite", "plan-comptable", "journal", "grand-livre", "balance", "bilan", "compte-resultat", "tresorerie", "rapprochement", "tva-taxes", "immobilisations", "clotures", "ecritures", "bilans", "rapports", "nouveau-compte", "nouvelle-immobilisation"].includes(activeTab) ? renderContent() : <><div className="page-title"><div><p className="section-kicker">Données en temps réel · v_tableau_bord</p><h1>{activeTab === "dashboard" ? "Aperçu financier" : ACCOUNTING_LABELS[activeTab] || NAV_ITEMS.find((item) => item.id === activeTab)?.label || "Administration"}</h1><p className="subtitle">{roles.map(({ nom }) => nom).join(", ")} · {permissions.length} permission{permissions.length > 1 ? "s" : ""}</p></div><div className="page-actions"><button className="outline-button">▣ Ce mois</button>{can("RAPPORT_CREATE") && <button className="primary-button">Générer Rapport</button>}</div></div>{renderContent()}</>}</div></main>
     </div>
