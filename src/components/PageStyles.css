@@ -67,6 +67,40 @@ body:has(.modal-backdrop) { overflow: hidden; }
 .profile-menu-wrap .profile-menu { position: absolute; bottom: calc(100% + 8px); left: 12px; }
 .profile-menu button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 10px; border: 0; border-radius: 4px; background: transparent; color: #17212b; font: inherit; font-size: .7rem; text-align: left; cursor: pointer; }
 .profile-menu button:hover { background: #edf8f0; }
+.export-backdrop { z-index: 2147483100; }
+.export-dialog { display: grid; gap: 18px; width: min(620px, 100%); max-height: calc(100dvh - 32px); overflow: auto; padding: 22px; border: 1px solid #cfe4d6; border-radius: 10px; background: #fff; color: #17212b; box-shadow: 0 20px 60px rgba(10, 52, 27, .3); }
+.export-dialog-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.export-dialog-header h2 { margin: 0; color: var(--navy); font-size: 1.1rem; }
+.export-dialog-header .panel-description { margin: 5px 0 0; }
+.export-dialog fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.export-dialog legend { margin-bottom: 9px; color: var(--navy); font-size: .72rem; font-weight: 700; }
+.export-format-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.export-format { display: flex; align-items: flex-start; gap: 9px; min-width: 0; padding: 12px; border: 1px solid #d5e3da; border-radius: 7px; color: #405471; cursor: pointer; }
+.export-format.active { border-color: var(--accent); background: #edf8f0; color: var(--accent-dark); }
+.export-format input { margin-top: 2px; accent-color: var(--accent); }
+.export-format svg { flex: 0 0 auto; color: var(--accent); }
+.export-format span { display: grid; gap: 3px; min-width: 0; }
+.export-format strong { font-size: .75rem; }
+.export-format small { color: #718096; font-size: .62rem; line-height: 1.35; }
+.export-filename { display: grid; gap: 6px; color: #526987; font-size: .7rem; font-weight: 700; }
+.export-filename input { min-height: 38px; padding: 0 10px; border: 1px solid #d5dce6; border-radius: 6px; background: #fff; color: #263957; font: inherit; font-weight: 400; }
+.export-columns > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.export-columns label { display: flex; align-items: center; gap: 7px; padding: 7px 8px; border: 1px solid #e1e9e4; border-radius: 5px; color: #405471; font-size: .68rem; cursor: pointer; }
+.export-columns input { accent-color: var(--accent); }
+.export-dialog-actions { display: flex; justify-content: flex-end; gap: 9px; padding-top: 4px; border-top: 1px solid #e5f0e7; }
+.reconciliation-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 11px; border: 1px solid #dfeee6; border-radius: 7px; background: #f3fbf4; color: #52709c; font-size: .68rem; }
+.reconciliation-summary strong { color: var(--success); font-size: .68rem; }
+[data-theme="dark"] .reconciliation-summary { border-color: #365542; background: #1b2d23; color: #a8c9b1; }
+[data-theme="dark"] .reconciliation-summary strong { color: #8fd3a4; }
+[data-theme="dark"] .export-dialog { border-color: #365542; background: #17251d; color: #e4eee8; }
+[data-theme="dark"] .export-dialog-header h2, [data-theme="dark"] .export-dialog legend { color: #e4f3e8; }
+[data-theme="dark"] .export-format { border-color: #365542; color: #cce4d2; }
+[data-theme="dark"] .export-format.active { background: #203b2c; border-color: #66a578; color: #e4f3e8; }
+[data-theme="dark"] .export-format small { color: #91ad9b; }
+[data-theme="dark"] .export-filename { color: #a8c9b1; }
+[data-theme="dark"] .export-filename input { border-color: #365542; background: #132019; color: #e2f0e5; }
+[data-theme="dark"] .export-columns label { border-color: #365542; color: #cce4d2; }
+[data-theme="dark"] .export-dialog-actions { border-color: #294435; }
 .global-search { position: fixed; top: 8px; left: 242px; z-index: 31; display: flex; align-items: center; gap: 8px; width: min(360px, 38vw); padding: 9px 12px; border: 1px solid #cfe4d6; border-radius: 5px; background: #f0f8f2; color: var(--accent); }
 .global-search input { width: 100%; border: 0; outline: 0; background: transparent; color: inherit; font: inherit; font-size: .78rem; }
 .global-search input::placeholder { color: #637381; }
