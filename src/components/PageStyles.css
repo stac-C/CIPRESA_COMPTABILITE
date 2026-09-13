@@ -561,3 +561,23 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 [data-theme="dark"] .accounting-control-list > div {
   border-color: #294435;
 }
+
+[data-theme="dark"] .executive-summary {
+  border-color: #386148;
+  background: linear-gradient(120deg, #1c3726, #17251d);
+}
+[data-theme="dark"] .executive-summary h2,
+[data-theme="dark"] .summary-period strong,
+[data-theme="dark"] .insight-item strong,
+[data-theme="dark"] .recent-activity strong { color: #e4f3e8; }
+[data-theme="dark"] .executive-summary p:not(.section-kicker),
+[data-theme="dark"] .summary-period span,
+[data-theme="dark"] .summary-period small,
+[data-theme="dark"] .insight-item small,
+[data-theme="dark"] .activity-date,
+[data-theme="dark"] .recent-activity small { color: #a8c9b1; }
+[data-theme="dark"] .summary-period { border-color: #386148; }
+[data-theme="dark"] .insight-item { border-color: #365542; background: #1b2d23; }
+[data-theme="dark"] .insight-item.danger { border-color: #70423e; background: #30201f; }
+[data-theme="dark"] .recent-activity { border-color: #294435; }
+[data-theme="dark"] .recent-activity b { color: #b8e3c6; }
