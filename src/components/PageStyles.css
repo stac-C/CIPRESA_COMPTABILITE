@@ -536,3 +536,28 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   background: #132019;
   border-color: #365542;
 }
+
+[data-theme="dark"] .accounting-kpi-card,
+[data-theme="dark"] .accounting-dashboard-panel {
+  background: #17251d;
+  border-color: #365542;
+  color: #d7e9dc;
+}
+
+[data-theme="dark"] .accounting-kpi-card span,
+[data-theme="dark"] .accounting-kpi-card em,
+[data-theme="dark"] .accounting-result-line,
+[data-theme="dark"] .accounting-control-list > div {
+  color: #a8c9b1;
+}
+
+[data-theme="dark"] .accounting-kpi-card strong,
+[data-theme="dark"] .accounting-result-line strong,
+[data-theme="dark"] .accounting-control-list strong {
+  color: #e4f3e8;
+}
+
+[data-theme="dark"] .accounting-result-line,
+[data-theme="dark"] .accounting-control-list > div {
+  border-color: #294435;
+}

@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowDownToLine, ArrowUpFromLine, Check, CircleAlert, Download, FilePlus2,
   Paperclip, Plus, Search, Trash2, Upload, X, CheckCircle2, Filter, Calculator,
-  RefreshCw, FileText, LockKeyhole, Save,
+  RefreshCw, FileText, LockKeyhole, Save, TrendingUp, WalletCards, ReceiptText, Scale, BookOpen,
 } from 'lucide-react';
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { accountClasses, chartOfAccounts, fixedAssets, journalEntries, journals, trialBalance } from '../data/accountingData';
 import { supabase, supabaseConfigured } from '../lib/supabaseClient';
 import ExportDialog from './ExportDialog';
@@ -86,18 +87,36 @@ function SectionCard({ title, description, actions, children, className = '' }) 
 }
 
 function AccountingOverview({ onNavigate, can }) {
+  const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+  const parseDate = (value) => {
+    const [day, month, year] = String(value || '').split('/');
+    return year && month ? { year: Number(year), month: Number(month) - 1 } : null;
+  };
+  const years = journalEntries.map((entry) => parseDate(entry.date)?.year).filter(Boolean);
+  const referenceYear = years.length ? Math.max(...years) : new Date().getFullYear();
+  const entriesOfYear = journalEntries.filter((entry) => parseDate(entry.date)?.year === referenceYear);
+  const monthly = months.map((month, index) => {
+    const rows = entriesOfYear.filter((entry) => parseDate(entry.date)?.month === index);
+    return { month, debit: rows.reduce((sum, row) => sum + Number(row.debit || 0), 0), credit: rows.reduce((sum, row) => sum + Number(row.credit || 0), 0), operations: new Set(rows.map((row) => row.number)).size };
+  });
+  const totalDebit = entriesOfYear.reduce((sum, row) => sum + Number(row.debit || 0), 0);
+  const totalCredit = entriesOfYear.reduce((sum, row) => sum + Number(row.credit || 0), 0);
+  const expenses = trialBalance.filter((row) => String(row[0]).startsWith('6')).reduce((sum, row) => sum + Number(row[2] || 0), 0);
+  const revenue = trialBalance.filter((row) => String(row[0]).startsWith('7')).reduce((sum, row) => sum + Number(row[3] || 0), 0);
+  const cash = trialBalance.filter((row) => String(row[0]).startsWith('5')).reduce((sum, row) => sum + Number(row[2] || 0) - Number(row[3] || 0), 0);
+  const balanceGap = totalDebit - totalCredit;
+  const formatCompact = (value) => `${(Number(value || 0) / 1000000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} M`;
+  const kpis = [
+    ['Chiffre d’affaires', revenue, 'Produits enregistrés', 'good', TrendingUp],
+    ['Charges', expenses, 'Charges constatées', 'warn', ArrowDownToLine],
+    ['Trésorerie nette', cash, 'Comptes de classe 5', 'neutral', WalletCards],
+    ['Opérations', new Set(entriesOfYear.map((row) => row.number)).size, `${entriesOfYear.length} lignes comptables`, 'neutral', ReceiptText],
+    ['Écart de contrôle', Math.abs(balanceGap), balanceGap === 0 ? 'Balance équilibrée' : 'À contrôler', balanceGap === 0 ? 'good' : 'danger', Scale],
+    ['Comptes référencés', chartOfAccounts.length, 'Plan comptable visible', 'neutral', BookOpen],
+  ];
   const quickActions = [
-    ['plan-comptable', 'Plan comptable', 'Référentiel des comptes SYSCOHADA et comptes spécifiques CIPRESA.'],
-    ['journal', 'Journal', 'Consultez les écritures et saisissez les opérations courantes.'],
-    ['grand-livre', 'Grand livre', 'Suivez les mouvements et soldes compte par compte.'],
-    ['balance', 'Balance', 'Contrôlez les totaux débit, crédit et les soldes.'],
-    ['bilan', 'Bilan comptable', 'Préparez la synthèse de l’actif et du passif.'],
-    ['compte-resultat', 'Compte de résultat', 'Analysez les charges, produits et le résultat.'],
-    ['tresorerie', 'Trésorerie', 'Banque, caisse et Mobile Money.'],
-    ['rapprochement', 'Rapprochement', 'Contrôlez les écarts bancaires.'],
-    ['tva-taxes', 'TVA & Taxes', 'Suivez les obligations et contrôles fiscaux.'],
-    ['immobilisations', 'Immobilisations', 'Gérez les biens et amortissements.'],
-    ['clotures', 'Clôtures', 'Sécurisez les contrôles avant fermeture.'],
+    ['journal', 'Journal', 'Consulter les écritures'], ['grand-livre', 'Grand livre', 'Suivre les soldes'], ['balance', 'Balance', 'Contrôler les totaux'],
+    ['compte-resultat', 'Résultat', 'Comparer produits et charges'], ['tresorerie', 'Trésorerie', 'Voir les disponibilités'], ['rapprochement', 'Rapprochement', 'Traiter les écarts'],
   ];
   return <div className="accounting-overview">
     <section className="content-panel accounting-hero-panel">
@@ -107,9 +126,13 @@ function AccountingOverview({ onNavigate, can }) {
         {can('COMPTA_PLAN_CREATE') && <button className="outline-button" type="button" onClick={() => onNavigate?.('nouveau-compte')}><Plus size={15}/> Nouveau compte</button>}
       </div>
     </section>
-    <section className="accounting-module-grid">
-      {quickActions.map(([id, title, description]) => <button key={id} className="accounting-module-card" type="button" onClick={() => onNavigate?.(id)}><span className="module-accent"/><div><strong>{title}</strong><p>{description}</p></div><span className="module-arrow">›</span></button>)}
+    <section className="accounting-kpi-grid">{kpis.map(([label, value, hint, tone, Icon]) => <article className={`accounting-kpi-card ${tone}`} key={label}><div className="accounting-kpi-icon"><Icon size={17} /></div><div><span>{label}</span><strong>{label === 'Opérations' || label === 'Comptes référencés' ? value.toLocaleString('fr-FR') : formatCompact(value)}{label !== 'Opérations' && label !== 'Comptes référencés' && <small> XAF</small>}</strong><em>{hint}</em></div></article>)}</section>
+    <section className="accounting-dashboard-grid">
+      <article className="content-panel accounting-dashboard-panel accounting-dashboard-wide"><div className="accounting-dashboard-heading"><div><p className="section-kicker">Performance mensuelle · {referenceYear}</p><h2>Débit et crédit par mois</h2></div><span className={balanceGap === 0 ? 'accounting-status good' : 'accounting-status danger'}>{balanceGap === 0 ? 'Équilibré' : 'À contrôler'}</span></div><div className="accounting-chart"><ResponsiveContainer width="100%" height={270}><LineChart data={monthly}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="month" /><YAxis tickFormatter={formatCompact} /><Tooltip formatter={(value) => `${Number(value).toLocaleString('fr-FR')} XAF`} /><Legend /><Line type="monotone" dataKey="debit" name="Débit" stroke="#0d9488" strokeWidth={3} dot={{ r: 3 }} /><Line type="monotone" dataKey="credit" name="Crédit" stroke="#d97706" strokeWidth={3} dot={{ r: 3 }} /></LineChart></ResponsiveContainer></div></article>
+      <article className="content-panel accounting-dashboard-panel"><div className="accounting-dashboard-heading"><div><p className="section-kicker">Structure annuelle</p><h2>Produits et charges</h2></div></div><div className="accounting-chart accounting-pie-chart"><ResponsiveContainer width="100%" height={230}><PieChart><Pie data={[{ name: 'Produits', value: revenue }, { name: 'Charges', value: expenses }]} dataKey="value" nameKey="name" innerRadius={58} outerRadius={84} paddingAngle={4}>{['#0d9488', '#d97706'].map((color) => <Cell key={color} fill={color} />)}</Pie><Tooltip formatter={(value) => `${Number(value).toLocaleString('fr-FR')} XAF`} /><Legend /></PieChart></ResponsiveContainer></div><div className="accounting-result-line"><span>Résultat indicatif</span><strong className={revenue - expenses >= 0 ? 'positive' : 'negative'}>{formatCompact(revenue - expenses)} XAF</strong></div></article>
+      <article className="content-panel accounting-dashboard-panel"><div className="accounting-dashboard-heading"><div><p className="section-kicker">Contrôle de période</p><h2>Totaux de la balance</h2></div></div><div className="accounting-control-list"><div><span>Total débit</span><strong>{formatCompact(totalDebit)} XAF</strong></div><div><span>Total crédit</span><strong>{formatCompact(totalCredit)} XAF</strong></div><div><span>Écart constaté</span><strong className={balanceGap === 0 ? 'positive' : 'negative'}>{formatCompact(Math.abs(balanceGap))} XAF</strong></div></div><button className="outline-button accounting-dashboard-link" type="button" onClick={() => onNavigate?.('balance')}>Ouvrir la balance <ArrowDownToLine size={14} /></button></article>
     </section>
+    <section className="accounting-module-grid">{quickActions.map(([id, title, description]) => <button key={id} className="accounting-module-card" type="button" onClick={() => onNavigate?.(id)}><span className="module-accent"/><div><strong>{title}</strong><p>{description}</p></div><span className="module-arrow">›</span></button>)}</section>
   </div>;
 }
 

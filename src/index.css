@@ -676,6 +676,35 @@ body {
 .accounting-period, .accounting-toolbar select { min-height: 36px; padding: 0 10px; border: 1px solid #d5dce6; border-radius: 6px; background: #fff; color: #33465f; font: inherit; font-size: .72rem; }
 .accounting-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .accounting-kpis .kpi-card-mini { min-height: 76px; display: grid; align-content: center; }
+.accounting-kpi-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.accounting-kpi-card { display: flex; align-items: flex-start; gap: 10px; min-width: 0; min-height: 94px; padding: 13px; border: 1px solid #d5e4da; border-radius: 9px; background: #fff; box-shadow: 0 2px 7px rgba(20,32,51,.035); }
+.accounting-kpi-card > div:last-child { display: grid; gap: 3px; min-width: 0; }
+.accounting-kpi-card span { color: #68788d; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.accounting-kpi-card strong { color: #173b2c; font-size: 17px; line-height: 1.1; white-space: nowrap; }
+.accounting-kpi-card strong small { font-size: 9px; }
+.accounting-kpi-card em { color: #8290a2; font-size: 10px; font-style: normal; line-height: 1.3; }
+.accounting-kpi-icon { display: grid; flex: 0 0 auto; place-items: center; width: 30px; height: 30px; border-radius: 7px; background: #e8f7f4; color: #0f766e; }
+.accounting-kpi-card.warn .accounting-kpi-icon { background: #fff3dc; color: #b45309; }
+.accounting-kpi-card.danger .accounting-kpi-icon { background: #fde8e7; color: #b42318; }
+.accounting-dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(260px, .8fr) minmax(250px, .7fr); gap: 12px; }
+.accounting-dashboard-panel { min-width: 0; padding: 16px; }
+.accounting-dashboard-wide { grid-column: span 1; }
+.accounting-dashboard-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.accounting-dashboard-heading h2 { margin: 0; font-size: .95rem; }
+.accounting-dashboard-heading .section-kicker { margin-bottom: 5px; }
+.accounting-status { padding: 5px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; }
+.accounting-status.good { background: #e1f5e9; color: #167347; }
+.accounting-status.danger { background: #fde8e7; color: #b42318; }
+.accounting-chart { width: 100%; height: 270px; margin-top: 12px; }
+.accounting-pie-chart { height: 230px; }
+.accounting-result-line, .accounting-control-list > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.accounting-result-line { padding-top: 9px; border-top: 1px solid #e5eee8; color: #68806f; font-size: 11px; }
+.accounting-result-line strong, .accounting-control-list strong { font-size: 13px; }
+.positive { color: #168251 !important; }
+.negative { color: #b42318 !important; }
+.accounting-control-list { display: grid; gap: 14px; margin-top: 22px; }
+.accounting-control-list > div { padding-bottom: 10px; border-bottom: 1px solid #e5eee8; color: #68806f; font-size: 11px; }
+.accounting-dashboard-link { display: inline-flex; align-items: center; gap: 7px; margin-top: 18px; }
 .accounting-charts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .chart-panel { min-width: 0; padding: 14px; border: 1px solid #d5e4da; border-radius: 8px; background: #fff; }
 .chart-panel-heading h2 { margin: 0; color: #164b36; font-size: .85rem; }
@@ -729,6 +758,8 @@ body {
 [data-theme="dark"] .accounting-light .accounting-operation-note strong { color: #e4f3e8; }
 [data-theme="dark"] .accounting-light .accounting-operation-note span { color: #a8c9b1; }
 @media (max-width: 700px) { .accounting-header-actions, .accounting-toolbar, .accounting-operation-note { align-items: stretch; flex-direction: column; } .accounting-kpis { grid-template-columns: 1fr; } .accounting-search { max-width: none; } .accounting-workflow { grid-template-columns: 1fr; } .workflow-actions { grid-template-columns: 1fr; } .workflow-action { min-height: auto; } }
+@media (max-width: 1050px) { .accounting-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .accounting-dashboard-grid { grid-template-columns: minmax(0, 1fr) minmax(260px, .8fr); } .accounting-dashboard-wide { grid-column: 1 / -1; } }
+@media (max-width: 700px) { .accounting-kpi-grid, .accounting-dashboard-grid { grid-template-columns: 1fr; } .accounting-kpi-card { min-height: 78px; } .accounting-dashboard-wide { grid-column: auto; } .accounting-chart { height: 240px; } }
 .workspace-header { margin-bottom: 16px; }
 .accounting-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding-top: 15px; border-top: 1px solid #e5eaf1; }
 .accounting-field { display: grid; gap: 5px; min-width: 0; color: #526987; font-size: .7rem; }
