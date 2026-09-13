@@ -833,10 +833,24 @@ body {
   .stat-value { font-size: 1rem; }
 }
 
+@media (max-width: 620px) {
+  .main-area { width: 100%; min-width: 0; overflow-x: hidden; }
+  .topbar { width: 100%; box-sizing: border-box; padding-right: 62px; }
+  .search-box { width: min(170px, calc(100vw - 92px)); min-width: 0; }
+  .page-content { width: 100%; max-width: 100%; box-sizing: border-box; overflow-x: hidden; }
+  .page-title h1 { font-size: 1.25rem; overflow-wrap: anywhere; }
+  .content-panel { max-width: 100%; box-sizing: border-box; }
+  .section-heading { min-width: 0; }
+  .section-heading > div { min-width: 0; }
+  .section-heading h2, .panel-description { overflow-wrap: anywhere; }
+  .table-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .settings-form, .admin-operation-list, .role-checkboxes { min-width: 0; }
+}
+
 /* ===== CIPRESA COMPTABILITE — green/white accounting workspace ===== */
 .accounting-light {
-  --compta-green: #0d9488;
-  --compta-green-dark: #0f766e;
+  --compta-green: #94740d;
+  --compta-green-dark: #bead0b;
   --compta-green-soft: #e8f7f4;
   --compta-bg: #f7fafb;
   --compta-border: #dce5e8;

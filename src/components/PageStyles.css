@@ -298,6 +298,46 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .crop-area { height: 58vh; }
 }
 
+@media (max-width: 620px) {
+  .profile-page,
+  .profile-page .content-panel,
+  .security-panel { min-width: 0; max-width: 100%; }
+  .profile-identity { width: 100%; align-items: flex-start; }
+  .profile-identity > div:last-child { min-width: 0; overflow-wrap: anywhere; }
+  .device-item { align-items: flex-start; flex-wrap: wrap; }
+  .device-item > span { margin-left: 28px; }
+  .device-item > .icon-button { margin-left: auto; }
+  .device-item small,
+  .device-audit-main small { height: auto; overflow: visible; white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
+  .device-audit-main { width: calc(100% - 32px); }
+  .login-event { align-items: flex-start; flex-direction: column; }
+  .login-event > span { overflow-wrap: anywhere; }
+  .export-format-options, .export-columns > div { grid-template-columns: 1fr; }
+  .export-dialog-header { gap: 8px; }
+  .export-dialog-header h2 { overflow-wrap: anywhere; }
+  .export-dialog-actions { flex-direction: column-reverse; }
+  .export-dialog-actions button { width: 100%; }
+  .accounting-light .accounting-page { width: 100%; min-width: 0; overflow-x: hidden; }
+  .accounting-light .accounting-header { min-width: 0; }
+  .accounting-light .accounting-header h1 { font-size: 1.45rem; overflow-wrap: anywhere; }
+  .accounting-light .accounting-header-actions,
+  .accounting-light .accounting-toolbar,
+  .accounting-light .toolbar { width: 100%; min-width: 0; }
+  .accounting-light .accounting-header-actions > *,
+  .accounting-light .accounting-toolbar > *,
+  .accounting-light .toolbar > * { max-width: 100%; min-width: 0; }
+  .accounting-light .accounting-quick-actions { display: grid; grid-template-columns: 1fr; }
+  .accounting-light .accounting-quick-actions button { width: 100%; }
+  .accounting-light .accounting-tabs { max-width: 100%; overflow-x: auto; }
+  .accounting-light .accounting-tabs button { flex: 0 0 auto; }
+  .accounting-light .accounting-card { padding: 14px; }
+  .accounting-light .ledger-summary { grid-template-columns: 1fr !important; }
+  .accounting-light .closure-panel .closure-row { flex-wrap: wrap; }
+  .accounting-light .closure-panel .closure-row .outline-button { margin-left: 40px; }
+  .accounting-light .accounting-form,
+  .accounting-light .balance-prep-panel .bilan-form { grid-template-columns: 1fr; }
+}
+
 [data-theme="dark"] .accounting-light .accounting-header p,
 [data-theme="dark"] .accounting-light .accounting-field,
 [data-theme="dark"] .accounting-light .accounting-field small,
