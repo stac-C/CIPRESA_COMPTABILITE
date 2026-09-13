@@ -94,11 +94,11 @@ export default function PersonalSettings({ profile, roles, onSaved, onSignOut })
     if (!profile?.id) return undefined;
     let active = true;
     Promise.all([
-      supabase.from("user_devices").select("id, device_key, label, user_agent, last_seen_at, created_at, revoked_at, first_seen_at, last_login_at, login_count, last_ip_address, last_country_code, last_region, last_city").eq("user_id", profile.id).order("last_seen_at", { ascending: false }),
-      supabase.from("device_login_events").select("id, device_id, device_key, event_type, ip_address, country_code, region, city, user_agent, created_at").eq("user_id", profile.id).order("created_at", { ascending: false }).limit(30),
+      supabase.from("user_devices").select("id, device_key, label, user_agent, last_seen_at, created_at, revoked_at, first_seen_at, last_login_at, login_count, last_ip_address, last_country_code, last_region, last_city, device_model, os_name, os_version, browser_name, browser_version").eq("user_id", profile.id).order("last_seen_at", { ascending: false }),
+      supabase.from("device_login_events").select("id, device_id, device_key, event_type, ip_address, country_code, region, city, user_agent, device_model, os_name, os_version, browser_name, browser_version, created_at").eq("user_id", profile.id).order("created_at", { ascending: false }).limit(30),
     ]).then(([deviceResult, eventResult]) => {
       if (!active) return;
-      setDevices(deviceResult.data || []);
+      setDevices((deviceResult.data || []).map((device) => ({ ...device, user_agent: formatDeviceDetails(device) })));
       setLoginEvents(eventResult.data || []);
     }).catch(() => {
       if (active) { setDevices([]); setLoginEvents([]); }
@@ -160,7 +160,14 @@ export default function PersonalSettings({ profile, roles, onSaved, onSignOut })
   }
 
   function formatLocation(item) {
-    return [item.city, item.region, item.country_code].filter(Boolean).join(", ") || "Localisation non fournie";
+    return [item.city, item.region, item.country_code].filter(Boolean).join(", ") || "Localisation non fournie par le réseau";
+  }
+
+  function formatDeviceDetails(device) {
+    const model = device.device_model || device.label || "Appareil non identifié";
+    const system = [device.os_name, device.os_version].filter(Boolean).join(" ") || "Système non identifié";
+    const browser = [device.browser_name, device.browser_version].filter(Boolean).join(" ") || "Navigateur non identifié";
+    return `Appareil : ${model} · Système : ${system} · Navigateur : ${browser}`;
   }
 
   async function updateNotificationPreference(event) {

@@ -20,6 +20,17 @@ alter table public.user_devices add column if not exists last_ip_address inet;
 alter table public.user_devices add column if not exists last_country_code text;
 alter table public.user_devices add column if not exists last_region text;
 alter table public.user_devices add column if not exists last_city text;
+alter table public.user_devices add column if not exists device_model text;
+alter table public.user_devices add column if not exists os_name text;
+alter table public.user_devices add column if not exists os_version text;
+alter table public.user_devices add column if not exists browser_name text;
+alter table public.user_devices add column if not exists browser_version text;
+
+alter table public.device_login_events add column if not exists device_model text;
+alter table public.device_login_events add column if not exists os_name text;
+alter table public.device_login_events add column if not exists os_version text;
+alter table public.device_login_events add column if not exists browser_name text;
+alter table public.device_login_events add column if not exists browser_version text;
 
 create index if not exists idx_device_login_events_user_created
   on public.device_login_events(user_id, created_at desc);

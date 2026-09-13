@@ -17,6 +17,18 @@ function firstHeader(request: Request, names: string[]) {
   return null;
 }
 
+async function resolveIpLocation(ipAddress: string | null) {
+  if (!ipAddress) return { countryCode: null, region: null, city: null };
+  try {
+    const result = await fetch(`https://ipapi.co/${encodeURIComponent(ipAddress)}/json/`);
+    if (!result.ok) return { countryCode: null, region: null, city: null };
+    const data = await result.json();
+    return { countryCode: data.country_code || null, region: data.region || null, city: data.city || null };
+  } catch {
+    return { countryCode: null, region: null, city: null };
+  }
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return response({ error: "Method not allowed" }, 405);
@@ -31,12 +43,23 @@ Deno.serve(async (request) => {
   const deviceKey = String(payload.deviceKey || "").trim();
   const label = String(payload.label || "Appareil").trim().slice(0, 120);
   const userAgent = String(payload.userAgent || request.headers.get("user-agent") || "").slice(0, 500);
+  const deviceModel = String(payload.deviceModel || "Inconnu").slice(0, 120);
+  const osName = String(payload.osName || "Inconnu").slice(0, 80);
+  const osVersion = String(payload.osVersion || "").slice(0, 40);
+  const browserName = String(payload.browserName || "Inconnu").slice(0, 80);
+  const browserVersion = String(payload.browserVersion || "").slice(0, 40);
   if (!deviceKey) return response({ error: "Identifiant appareil requis." }, 400);
 
   const ipAddress = firstHeader(request, ["cf-connecting-ip", "x-real-ip", "x-forwarded-for"]);
-  const countryCode = firstHeader(request, ["cf-ipcountry", "x-country-code"]);
-  const region = firstHeader(request, ["x-vercel-ip-country-region", "x-region"]);
-  const city = firstHeader(request, ["x-vercel-ip-city", "x-city"]);
+  let countryCode = firstHeader(request, ["cf-ipcountry", "x-country-code"]);
+  let region = firstHeader(request, ["x-vercel-ip-country-region", "x-region"]);
+  let city = firstHeader(request, ["x-vercel-ip-city", "x-city"]);
+  if (!countryCode || !region || !city) {
+    const fallbackLocation = await resolveIpLocation(ipAddress);
+    countryCode ||= fallbackLocation.countryCode;
+    region ||= fallbackLocation.region;
+    city ||= fallbackLocation.city;
+  }
   const now = new Date().toISOString();
 
   const { data: existingDevice, error: existingError } = await adminClient
@@ -62,6 +85,11 @@ Deno.serve(async (request) => {
       last_country_code: countryCode,
       last_region: region,
       last_city: city,
+      device_model: deviceModel,
+      os_name: osName,
+      os_version: osVersion,
+      browser_name: browserName,
+      browser_version: browserVersion,
       revoked_at: null,
     }, { onConflict: "user_id,device_key", ignoreDuplicates: false })
     .select("id, login_count, first_seen_at")
@@ -78,6 +106,11 @@ Deno.serve(async (request) => {
     region,
     city,
     user_agent: userAgent,
+    device_model: deviceModel,
+    os_name: osName,
+    os_version: osVersion,
+    browser_name: browserName,
+    browser_version: browserVersion,
   });
   if (eventError) return response({ error: eventError.message }, 500);
   return response({ deviceId: device.id, loginCount: device.login_count });

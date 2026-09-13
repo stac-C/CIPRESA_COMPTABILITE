@@ -12,6 +12,27 @@ function deviceLabel() {
   return `${platform} · ${/Mobile/i.test(navigator.userAgent) ? "Mobile" : "Navigateur"}`;
 }
 
+function parseClient() {
+  const userAgent = navigator.userAgent;
+  const platform = navigator.userAgentData?.platform || navigator.platform || "Inconnu";
+  const mobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
+  let osName = platform;
+  let osVersion = "";
+  if (/Windows NT 10/i.test(userAgent)) { osName = "Windows"; osVersion = "10/11"; }
+  else if (/Mac OS X/i.test(userAgent)) { osName = "macOS"; osVersion = userAgent.match(/Mac OS X ([\d_]+)/i)?.[1]?.replaceAll("_", ".") || ""; }
+  else if (/Android/i.test(userAgent)) { osName = "Android"; osVersion = userAgent.match(/Android ([\d.]+)/i)?.[1] || ""; }
+  else if (/iPhone OS|CPU OS/i.test(userAgent)) { osName = "iOS"; osVersion = userAgent.match(/(?:iPhone )?OS ([\d_]+)/i)?.[1]?.replaceAll("_", ".") || ""; }
+  else if (/Linux/i.test(userAgent)) osName = "Linux";
+  let browserName = "Navigateur";
+  let browserVersion = "";
+  const browserPatterns = [[/Edg\/([\d.]+)/, "Edge"], [/OPR\/([\d.]+)/, "Opera"], [/Chrome\/([\d.]+)/, "Chrome"], [/Firefox\/([\d.]+)/, "Firefox"], [/Version\/([\d.]+).*Safari\//, "Safari"]];
+  for (const [pattern, name] of browserPatterns) {
+    const match = userAgent.match(pattern);
+    if (match) { browserName = name; browserVersion = match[1]; break; }
+  }
+  return { deviceModel: mobile ? "Appareil mobile" : "Ordinateur", osName, osVersion, browserName, browserVersion };
+}
+
 function deviceKey() {
   return `${window.location.origin}:${navigator.userAgent}`;
 }
@@ -26,7 +47,7 @@ export default function usePushNotifications(userId, enabled = true) {
     let active = true;
     async function register() {
       const key = deviceKey();
-      await supabase.functions.invoke("record-auth-event", { body: { deviceKey: key, label: deviceLabel(), userAgent: navigator.userAgent } });
+      await supabase.functions.invoke("record-auth-event", { body: { deviceKey: key, label: deviceLabel(), userAgent: navigator.userAgent, ...parseClient() } });
       if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
       const registration = await navigator.serviceWorker.register("/sw.js");
       if (!active) return;
