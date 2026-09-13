@@ -10,7 +10,9 @@ dist/
 .env.*
 !.env.example
 supabase/.env 
-supabase/.env.example
+!supabase/.env.example
+!supabase/
+!supabase/.env.example
 # Logs
 *.log
 npm-debug.log*

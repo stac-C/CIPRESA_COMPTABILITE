@@ -94,9 +94,8 @@ La fonction utilise aussi automatiquement `SUPABASE_URL`, fourni par l'environne
 
 Le service worker [public/sw.js](public/sw.js) permet de recevoir des notifications lorsque l'onglet n'est plus actif.
 
-1. Generer une paire de cles VAPID.
-2. Placer la cle publique dans `VITE_VAPID_PUBLIC_KEY`.
-3. Configurer les secrets de la fonction:
+1. Generer une seule paire de cles VAPID pour le projet. La cle publique doit etre strictement identique dans `VITE_VAPID_PUBLIC_KEY` et `VAPID_PUBLIC_KEY`.
+2. Conserver la cle publique dans `.env` du frontend et les secrets serveur dans `supabase/.env` local ou dans les secrets Supabase:
 
 ```bash
 supabase secrets set VAPID_PUBLIC_KEY="votre-cle-publique"
@@ -104,13 +103,22 @@ supabase secrets set VAPID_PRIVATE_KEY="votre-cle-privee"
 supabase secrets set VAPID_SUBJECT="mailto:support@cipresa.com"
 ```
 
-4. Deployer la fonction d'envoi:
+Le modele local se trouve dans [supabase/.env.example](supabase/.env.example). `VAPID_PRIVATE_KEY` ne doit jamais apparaitre dans `.env`, dans le bundle Vite ou dans Git.
+
+3. Verifier les secrets deployes puis deployer la fonction d'envoi:
 
 ```bash
+supabase secrets list
 supabase functions deploy send-push-notification
 ```
 
-5. Creer dans Supabase un Database Webhook sur `public.notifications`, evenement `INSERT`, qui appelle `send-push-notification`.
+4. Creer dans Supabase un Database Webhook sur `public.notifications`, evenement `INSERT`, qui appelle `send-push-notification`.
+
+5. Rebuild et redeployer le frontend apres toute modification de `VITE_VAPID_PUBLIC_KEY`:
+
+```bash
+npm run build
+```
 
 Le navigateur doit autoriser les notifications. Sur iOS, l'application doit etre installee sur l'ecran d'accueil pour beneficier du Push Web.
 
