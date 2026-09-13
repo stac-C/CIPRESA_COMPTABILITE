@@ -500,7 +500,7 @@ body {
 .sidebar-user small { max-width: 138px; margin-top: 4px; overflow: hidden; color: #5f7ca6; font-size: .58rem; text-overflow: ellipsis; white-space: nowrap; }
 .avatar { width: 25px; height: 25px; display: grid; flex: 0 0 auto; place-items: center; border-radius: 50%; background: #d7e2f3; color: #21457e; font-size: .75rem; font-weight: 700; }
 
-.main-area { min-width: 0; flex: 1; }
+.main-area { min-width: 0; flex: 1 1 auto; width: 0; }
 .mobile-menu-toggle { display: none; }
 .topbar { height: 63px; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; background: #fbfcfd; border-bottom: 1px solid #e2e7ee; }
 .search-box { width: 320px; display: flex; align-items: center; gap: 10px; padding: 8px 11px; border-radius: 3px; background: #f3f5f8; color: #54749e; font-size: 1.05rem; }
@@ -510,7 +510,7 @@ body {
 .icon-button { width: 34px; height: 34px; border-radius: 9px; font-size: 1rem; }
 .profile-button { display: flex; align-items: center; gap: 8px; padding: 5px 7px 5px 12px; border-color: transparent; font-size: .72rem; }
 .avatar-small { width: 23px; height: 23px; font-size: .65rem; }
-.page-content { max-width: 1260px; margin: 0 auto; padding: 27px 27px 58px; }
+.page-content { width: min(100%, 1260px); box-sizing: border-box; margin: 0 auto; padding: 27px 27px 58px; }
 .page-title, .section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
 .page-title { margin-bottom: 23px; }
 .page-title h1 { margin: 0 0 5px; color: #111a2b; font-size: 1.5rem; letter-spacing: -.02em; }

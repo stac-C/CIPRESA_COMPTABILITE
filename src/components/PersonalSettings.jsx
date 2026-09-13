@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Cropper from "react-easy-crop";
-import { Bell, BellOff, Camera, Check, ImagePlus, Laptop, LogOut, LockKeyhole, MonitorSmartphone, Moon, Save, ShieldCheck, Sun, Trash2, UserPlus, X } from "lucide-react";
+import { Bell, BellOff, Camera, Check, Clock3, Globe2, ImagePlus, Laptop, LogOut, LockKeyhole, MonitorSmartphone, Moon, Network, Save, ShieldCheck, Sun, Trash2, UserPlus, X } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
 import { useTheme } from "../context/ThemeContext";
 
@@ -80,6 +80,7 @@ export default function PersonalSettings({ profile, roles, onSaved, onSignOut })
   const [message, setMessage] = useState(null);
   const [imageSrc, setImageSrc] = useState(null);
   const [devices, setDevices] = useState([]);
+  const [loginEvents, setLoginEvents] = useState([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(profile?.notifications_enabled !== false);
   const [passwordForm, setPasswordForm] = useState({ password: "", confirmation: "" });
   const [passwordSaving, setPasswordSaving] = useState(false);
@@ -92,10 +93,15 @@ export default function PersonalSettings({ profile, roles, onSaved, onSignOut })
   useEffect(() => {
     if (!profile?.id) return undefined;
     let active = true;
-    supabase.from("user_devices").select("id, device_key, label, user_agent, last_seen_at, created_at, revoked_at").eq("user_id", profile.id).order("last_seen_at", { ascending: false }).then(({ data }) => {
-      if (active) setDevices(data || []);
+    Promise.all([
+      supabase.from("user_devices").select("id, device_key, label, user_agent, last_seen_at, created_at, revoked_at, first_seen_at, last_login_at, login_count, last_ip_address, last_country_code, last_region, last_city").eq("user_id", profile.id).order("last_seen_at", { ascending: false }),
+      supabase.from("device_login_events").select("id, device_id, device_key, event_type, ip_address, country_code, region, city, user_agent, created_at").eq("user_id", profile.id).order("created_at", { ascending: false }).limit(30),
+    ]).then(([deviceResult, eventResult]) => {
+      if (!active) return;
+      setDevices(deviceResult.data || []);
+      setLoginEvents(eventResult.data || []);
     }).catch(() => {
-      if (active) setDevices([]);
+      if (active) { setDevices([]); setLoginEvents([]); }
     });
     return () => { active = false; };
   }, [profile?.id]);
@@ -137,12 +143,24 @@ export default function PersonalSettings({ profile, roles, onSaved, onSignOut })
   }
 
   async function revokeDevice(device) {
-    requestConfirmation("Révoquer cet appareil ?", "Ses notifications Push seront désactivées et sa session de confiance retirée.", async () => {
-      const { error } = await supabase.from("user_devices").update({ revoked_at: new Date().toISOString() }).eq("id", device.id).eq("user_id", profile.id);
-      if (error) setMessage({ type: "error", text: error.message });
-      else setDevices((current) => current.map((item) => item.id === device.id ? { ...item, revoked_at: new Date().toISOString() } : item));
-      await supabase.from("push_subscriptions").delete().eq("user_id", profile.id).eq("device_key", device.device_key);
+    requestConfirmation("Révoquer cet appareil ?", "Toutes les sessions de ce compte seront fermées et ses notifications Push seront désactivées.", async () => {
+      const { data, error } = await supabase.functions.invoke("revoke-user-sessions", { body: { deviceId: device.id } });
+      if (error || data?.error) { setMessage({ type: "error", text: data?.error || error?.message || "La révocation a échoué." }); return; }
+      setDevices((current) => current.map((item) => item.id === device.id ? { ...item, revoked_at: data.revokedAt } : item));
+      setMessage({ type: "success", text: "Les sessions du compte ont été fermées à distance." });
+      await onSignOut?.();
     });
+  }
+
+  function maskIp(ipAddress) {
+    if (!ipAddress) return "Non disponible";
+    if (ipAddress.includes(":")) return `${ipAddress.split(":").slice(0, 3).join(":")}::/…`;
+    const parts = ipAddress.split(".");
+    return parts.length === 4 ? `${parts[0]}.${parts[1]}.x.x` : "Masquée";
+  }
+
+  function formatLocation(item) {
+    return [item.city, item.region, item.country_code].filter(Boolean).join(", ") || "Localisation non fournie";
   }
 
   async function updateNotificationPreference(event) {
@@ -180,6 +198,6 @@ export default function PersonalSettings({ profile, roles, onSaved, onSignOut })
     {message && <p className={`message ${message.type}`}>{message.text}</p>}
     {roles.some(({ code }) => code === "ADMIN") && <AdminCreateUser onMessage={setMessage} />}
     <div className="settings-grid profile-settings-grid"><section className="content-panel"><div className="section-heading"><div><p className="section-kicker">Informations personnelles</p><h2>Coordonnées</h2><p className="panel-description">Ces informations sont utilisées pour personnaliser votre espace CIPRESA.</p></div><LockKeyhole size={19} className="section-icon" /></div><form className="settings-form" onSubmit={saveProfile}><label>Prénom <span className="field-hint">Votre prénom affiché.</span><input name="prenom" value={form.prenom} onChange={updateField} required /></label><label>Nom <span className="field-hint">Votre nom de famille.</span><input name="nom" value={form.nom} onChange={updateField} required /></label><label>Téléphone <span className="field-hint">Numéro de contact.</span><input name="telephone" value={form.telephone} onChange={updateField} /></label><label>Adresse <span className="field-hint">Adresse professionnelle ou personnelle.</span><input name="adresse" value={form.adresse} onChange={updateField} /></label><label>Ville <span className="field-hint">Ville d’activité.</span><input name="ville" value={form.ville} onChange={updateField} /></label><button className="primary-button profile-save-button" type="submit" disabled={saving}><Save size={15} />{saving ? "Enregistrement..." : "Enregistrer les changements"}</button></form></section><section className="content-panel profile-summary-panel"><div className="section-heading"><div><p className="section-kicker">Préférences</p><h2>Votre espace</h2></div><Sun size={18} className="section-icon" /></div><div className="theme-switcher" role="group" aria-label="Choisir le thème"><button className={themePreference === "light" ? "theme-option active" : "theme-option"} type="button" onClick={() => setTheme("light")}><Sun size={14} /> Clair</button><button className={themePreference === "dark" ? "theme-option active" : "theme-option"} type="button" onClick={() => setTheme("dark")}><Moon size={14} /> Sombre</button><button className={themePreference === "system" ? "theme-option active" : "theme-option"} type="button" onClick={() => setTheme("system")}><Laptop size={14} /> Système</button></div><h3 className="settings-subtitle">Vos rôles et droits</h3><div className="permission-list">{roles.map((role) => <span key={role.id}>{role.nom}</span>)}</div><p className="policy-note">Les droits d’accès sont chargés depuis Supabase. La photo et les coordonnées ne modifient jamais vos permissions.</p></section></div>
-    <section className="content-panel security-panel"><div className="section-heading"><div><p className="section-kicker">Sécurité et notifications</p><h2>Contrôle du compte</h2><p className="panel-description">Gérez vos alertes, votre mot de passe et les appareils autorisés.</p></div><ShieldCheck size={19} className="section-icon" /></div><label className="notification-preference"><span className="preference-icon">{notificationsEnabled ? <Bell size={17} /> : <BellOff size={17} />}</span><span><strong>Recevoir les notifications</strong><small>Opérations comptables, ventes, factures, achats, rapports et changements d’accès.</small></span><input type="checkbox" checked={notificationsEnabled} onChange={updateNotificationPreference} /></label><form className="password-form" onSubmit={changePassword}><h3 className="settings-subtitle">Changer le mot de passe</h3><input type="password" minLength="6" placeholder="Nouveau mot de passe" value={passwordForm.password} onChange={(event) => setPasswordForm((current) => ({ ...current, password: event.target.value }))} required /><input type="password" minLength="6" placeholder="Confirmer le nouveau mot de passe" value={passwordForm.confirmation} onChange={(event) => setPasswordForm((current) => ({ ...current, confirmation: event.target.value }))} required /><button className="primary-button" type="submit" disabled={passwordSaving}>{passwordSaving ? "Mise à jour..." : "Mettre à jour le mot de passe"}</button></form><h3 className="settings-subtitle device-heading">Appareils connectés</h3>{devices.length === 0 ? <p className="empty">Aucun appareil enregistré.</p> : <div className="device-list">{devices.map((device) => <article className={device.revoked_at ? "device-item is-revoked" : "device-item"} key={device.id}><MonitorSmartphone size={20} /><div><strong>{device.label}</strong><small>Dernière activité : {new Date(device.last_seen_at).toLocaleString("fr-FR")}</small></div><span>{device.revoked_at ? "Révoqué" : "Actif"}</span>{!device.revoked_at && <button className="icon-button" type="button" title="Révoquer cet appareil" onClick={() => revokeDevice(device)}><Trash2 size={15} /></button>}</article>)}</div>}</section>
+    <section className="content-panel security-panel"><div className="section-heading"><div><p className="section-kicker">Sécurité et notifications</p><h2>Contrôle du compte</h2><p className="panel-description">Gérez vos alertes, votre mot de passe et auditez les accès à votre compte.</p></div><ShieldCheck size={19} className="section-icon" /></div><label className="notification-preference"><span className="preference-icon">{notificationsEnabled ? <Bell size={17} /> : <BellOff size={17} />}</span><span><strong>Recevoir les notifications</strong><small>Opérations comptables, ventes, factures, achats, rapports et changements d’accès.</small></span><input type="checkbox" checked={notificationsEnabled} onChange={updateNotificationPreference} /></label><form className="password-form" onSubmit={changePassword}><h3 className="settings-subtitle">Changer le mot de passe</h3><input type="password" minLength="6" placeholder="Nouveau mot de passe" value={passwordForm.password} onChange={(event) => setPasswordForm((current) => ({ ...current, password: event.target.value }))} required /><input type="password" minLength="6" placeholder="Confirmer le nouveau mot de passe" value={passwordForm.confirmation} onChange={(event) => setPasswordForm((current) => ({ ...current, confirmation: event.target.value }))} required /><button className="primary-button" type="submit" disabled={passwordSaving}>{passwordSaving ? "Mise à jour..." : "Mettre à jour le mot de passe"}</button></form><h3 className="settings-subtitle device-heading">Appareils et sessions</h3><p className="panel-description device-audit-description">Qui : votre compte · Quoi : appareil et navigateur · Où : IP et localisation réseau · Quand : activité et nombre de connexions · Comment : user-agent.</p>{devices.length === 0 ? <p className="empty">Aucun appareil enregistré.</p> : <div className="device-list">{devices.map((device) => <article className={device.revoked_at ? "device-item is-revoked device-audit-card" : "device-item device-audit-card"} key={device.id}><MonitorSmartphone size={20} /><div className="device-audit-main"><strong>{device.label}</strong><small><Clock3 size={12} /> Dernière connexion : {device.last_login_at ? new Date(device.last_login_at).toLocaleString("fr-FR") : "Non disponible"}</small><small><Globe2 size={12} /> {formatLocation(device)} · IP {maskIp(device.last_ip_address)}</small><small><Network size={12} /> {device.login_count || 0} connexion{device.login_count === 1 ? "" : "s"} · {device.user_agent || "Navigateur non identifié"}</small></div><span>{device.revoked_at ? "Révoqué" : "Actif"}</span>{!device.revoked_at && <button className="icon-button" type="button" title="Révoquer et déconnecter le compte à distance" onClick={() => revokeDevice(device)}><Trash2 size={15} /></button>}</article>)}</div>}<h3 className="settings-subtitle device-heading">Historique récent des connexions</h3>{loginEvents.length === 0 ? <p className="empty">Aucun événement d’audit enregistré.</p> : <div className="login-event-list">{loginEvents.map((event) => <article className="login-event" key={event.id}><div><strong>{event.event_type === "LOGIN" ? "Connexion" : "Déconnexion distante"}</strong><small>{new Date(event.created_at).toLocaleString("fr-FR")} · {formatLocation(event)}</small></div><span>IP {maskIp(event.ip_address)}</span></article>)}</div>}</section>
   </div>;
 }

@@ -43,9 +43,9 @@
 .table-pagination, .form-actions { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
 .table-actions { display: flex; gap: 10px; }
 .link-button.danger { color: var(--danger); }
-.modal-backdrop { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 2147483000; display: grid; place-items: center; width: 100vw; height: 100dvh; min-height: 100vh; padding: 16px; background: linear-gradient(135deg, rgba(7, 37, 62, .72), rgba(25, 135, 84, .34)); backdrop-filter: blur(36px); -webkit-backdrop-filter: blur(36px); isolation: isolate; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-items: center; width: 100%; height: 100%; min-height: 100dvh; box-sizing: border-box; padding: 16px; overflow: auto; background: linear-gradient(135deg, rgba(7, 37, 62, .72), rgba(25, 135, 84, .34)); backdrop-filter: blur(36px); -webkit-backdrop-filter: blur(36px); isolation: isolate; }
 body:has(.modal-backdrop) { overflow: hidden; }
-.pdf-modal { display: flex; flex-direction: column; width: min(1180px, 100%); height: calc(100dvh - 32px); max-height: calc(100dvh - 32px); overflow: hidden; padding: 18px; border-radius: 8px; background: #fff; box-shadow: 0 20px 60px rgba(10, 52, 27, .3); }
+.pdf-modal { display: flex; flex-direction: column; width: min(1180px, 100%); height: min(900px, calc(100dvh - 32px)); max-height: calc(100dvh - 32px); box-sizing: border-box; overflow: hidden; margin: auto; padding: 18px; border-radius: 8px; background: #fff; box-shadow: 0 20px 60px rgba(10, 52, 27, .3); }
 .pdf-modal .section-heading { flex: 0 0 auto; }
 .pdf-viewer { display: block; width: 100%; height: auto; min-height: 0; flex: 1 1 auto; border: 1px solid #d4e6d9; background: #fff; }
 .success-dialog { position: relative; z-index: 1; place-self: center; width: min(420px, 100%); max-height: calc(100dvh - 32px); overflow: auto; padding: 28px; border-radius: 8px; background: #fff; text-align: center; box-shadow: 0 20px 60px rgba(10, 52, 27, .3); }
@@ -68,7 +68,7 @@ body:has(.modal-backdrop) { overflow: hidden; }
 .profile-menu button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 10px; border: 0; border-radius: 4px; background: transparent; color: #17212b; font: inherit; font-size: .7rem; text-align: left; cursor: pointer; }
 .profile-menu button:hover { background: #edf8f0; }
 .export-backdrop { z-index: 2147483100; }
-.export-dialog { display: grid; gap: 18px; width: min(620px, 100%); max-height: calc(100dvh - 32px); overflow: auto; padding: 22px; border: 1px solid #cfe4d6; border-radius: 10px; background: #fff; color: #17212b; box-shadow: 0 20px 60px rgba(10, 52, 27, .3); }
+.export-dialog { display: grid; gap: 18px; width: min(620px, 100%); max-height: calc(100dvh - 32px); box-sizing: border-box; overflow: auto; margin: auto; padding: 22px; border: 1px solid #cfe4d6; border-radius: 10px; background: #fff; color: #17212b; box-shadow: 0 20px 60px rgba(10, 52, 27, .3); }
 .export-dialog-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .export-dialog-header h2 { margin: 0; color: var(--navy); font-size: 1.1rem; }
 .export-dialog-header .panel-description { margin: 5px 0 0; }
@@ -83,7 +83,7 @@ body:has(.modal-backdrop) { overflow: hidden; }
 .export-format strong { font-size: .75rem; }
 .export-format small { color: #718096; font-size: .62rem; line-height: 1.35; }
 .export-filename { display: grid; gap: 6px; color: #526987; font-size: .7rem; font-weight: 700; }
-.export-filename input { min-height: 38px; padding: 0 10px; border: 1px solid #d5dce6; border-radius: 6px; background: #fff; color: #263957; font: inherit; font-weight: 400; }
+.export-filename input { min-height: 38px; padding: 0 10px; border: 1px solid #d5dce6; border-radius: 6px; background: #fff; color: #e0a605; font: inherit; font-weight: 400; }
 .export-columns > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
 .export-columns label { display: flex; align-items: center; gap: 7px; padding: 7px 8px; border: 1px solid #e1e9e4; border-radius: 5px; color: #405471; font-size: .68rem; cursor: pointer; }
 .export-columns input { accent-color: var(--accent); }
@@ -174,6 +174,16 @@ body:has(.modal-backdrop) { overflow: hidden; }
 .device-item > span { color: var(--success); font-size: .68rem; font-weight: 700; }
 .device-item.is-revoked { opacity: .58; }
 .device-item.is-revoked > span { color: var(--danger); }
+.device-audit-description { margin-bottom: 12px; }
+.device-audit-card { align-items: flex-start; }
+.device-audit-main { display: grid; gap: 5px; flex: 1; min-width: 0; }
+.device-audit-main small { display: flex; align-items: center; gap: 5px; white-space: normal; }
+.device-audit-main small svg { flex: 0 0 auto; color: var(--accent); }
+.login-event-list { display: grid; gap: 7px; }
+.login-event { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid #d4e6d9; border-radius: 7px; background: #fbfefb; }
+.login-event div { display: grid; gap: 3px; min-width: 0; }
+.login-event strong { color: var(--navy); font-size: .72rem; }
+.login-event small, .login-event > span { color: var(--grey); font-size: .64rem; }
 .notification-preference { display: flex; align-items: center; gap: 10px; margin: 14px 0 18px; padding: 12px; border: 1px solid #d4e6d9; border-radius: 7px; background: #fbfefb; cursor: pointer; }
 .notification-preference > span:nth-child(2) { display: grid; flex: 1; gap: 3px; }
 .notification-preference strong { color: var(--navy); font-size: .75rem; }
@@ -200,6 +210,9 @@ body:has(.modal-backdrop) { overflow: hidden; }
 [data-theme="dark"] .notification-preference strong { color: #e4f3e8; }
 [data-theme="dark"] .password-form, [data-theme="dark"] .device-heading { border-color: #294435; }
 [data-theme="dark"] .password-form input { border-color: #365542; background: #132019; color: #e2f0e5; }
+[data-theme="dark"] .login-event { border-color: #365542; background: #1b2d23; }
+[data-theme="dark"] .login-event strong { color: #e4f3e8; }
+[data-theme="dark"] .login-event small, [data-theme="dark"] .login-event > span { color: #a8c9b1; }
 
 @keyframes page-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes panel-enter { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: scale(1); } }
@@ -261,6 +274,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .modal-backdrop { padding: 10px; }
   .modal-backdrop { padding: 8px; }
   .pdf-modal { width: 100%; height: calc(100dvh - 16px); max-height: calc(100dvh - 16px); padding: 10px; border-radius: 5px; }
+  .export-dialog { width: 100%; max-height: calc(100dvh - 16px); padding: 16px; }
   .table-actions { display: grid; gap: 5px; }
   .topbar-actions { gap: 4px; }
   .profile-button { padding-left: 7px; font-size: 0; }
@@ -282,4 +296,203 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .profile-avatar { width: 72px; height: 72px; }
   .crop-modal { padding: 12px; }
   .crop-area { height: 58vh; }
+}
+
+[data-theme="dark"] .accounting-light .accounting-header p,
+[data-theme="dark"] .accounting-light .accounting-field,
+[data-theme="dark"] .accounting-light .accounting-field small,
+[data-theme="dark"] .accounting-light .form-field,
+[data-theme="dark"] .accounting-light .form-field > span,
+[data-theme="dark"] .accounting-light .accounting-search,
+[data-theme="dark"] .accounting-light .toolbar,
+[data-theme="dark"] .accounting-light .record-count,
+[data-theme="dark"] .accounting-light .empty,
+[data-theme="dark"] .accounting-light .kpi-card-mini span {
+  color: #a8c9b1;
+}
+
+[data-theme="dark"] .accounting-light .accounting-tabs,
+[data-theme="dark"] .accounting-light .accounting-tabs button {
+  background: #17251d;
+  color: #b8d8c0;
+  border-color: #365542;
+}
+
+[data-theme="dark"] .accounting-light .accounting-tabs button:hover,
+[data-theme="dark"] .accounting-light .accounting-tabs button.active {
+  background: #203b2c;
+  color: #e4f3e8;
+  border-color: #66a578;
+}
+
+[data-theme="dark"] .accounting-light .accounting-card .panel-description,
+[data-theme="dark"] .accounting-light .accounting-operation-note span,
+[data-theme="dark"] .accounting-light .notice-grid span,
+[data-theme="dark"] .accounting-light .workflow-action span,
+[data-theme="dark"] .accounting-light .accounting-field small {
+  color: #9ab7a3;
+}
+
+[data-theme="dark"] .accounting-light .accounting-card input::placeholder,
+[data-theme="dark"] .accounting-light .accounting-card textarea::placeholder,
+[data-theme="dark"] .global-search input::placeholder {
+  color: #86a994;
+  opacity: 1;
+}
+
+[data-theme="dark"] .accounting-light .accounting-operation-note,
+[data-theme="dark"] .accounting-light .notice-grid > div,
+[data-theme="dark"] .accounting-light .kpi-card-mini {
+  background: #1b2d23;
+  color: #d0e3d5;
+  border-color: #365542;
+}
+
+[data-theme="dark"] .accounting-light .accounting-operation-note strong,
+[data-theme="dark"] .accounting-light .kpi-card-mini strong,
+[data-theme="dark"] .accounting-light .data-table td strong,
+[data-theme="dark"] .accounting-light .code-cell {
+  color: #e4f3e8;
+}
+
+[data-theme="dark"] .accounting-light .data-table td,
+[data-theme="dark"] .accounting-light .data-table th,
+[data-theme="dark"] .accounting-light .entry-table input,
+[data-theme="dark"] .accounting-light .accounting-card select {
+  color: #d0e3d5;
+}
+
+[data-theme="dark"] .accounting-light .accounting-card select option {
+  background: #17251d;
+  color: #e4eee8;
+}
+
+[data-theme="dark"] .accounting-light,
+[data-theme="dark"] .accounting-light .accounting-page {
+  --compta-bg: #101815;
+  --compta-border: #365542;
+  --compta-text: #e4f3e8;
+  --compta-muted: #9ab7a3;
+  background: #101815;
+  color: #e4eee8;
+}
+
+[data-theme="dark"] .accounting-light .accounting-page,
+[data-theme="dark"] .accounting-light .content-panel,
+[data-theme="dark"] .accounting-light .accounting-module-card,
+[data-theme="dark"] .accounting-light .accounting-tabs,
+[data-theme="dark"] .accounting-light .chart-panel,
+[data-theme="dark"] .accounting-light .workflow-action,
+[data-theme="dark"] .accounting-light .search-field,
+[data-theme="dark"] .accounting-light .attachment-box,
+[data-theme="dark"] .accounting-light .upload-drop,
+[data-theme="dark"] .accounting-light .ledger-summary > div,
+[data-theme="dark"] .accounting-light .closure-panel .closure-checkline,
+[data-theme="dark"] .accounting-light .closure-panel .closure-row {
+  background: #17251d;
+  border-color: #365542;
+  color: #d7e9dc;
+}
+
+[data-theme="dark"] .accounting-light .accounting-header,
+[data-theme="dark"] .accounting-light .accounting-header h1,
+[data-theme="dark"] .accounting-light .accounting-header h2,
+[data-theme="dark"] .accounting-light .accounting-card h2,
+[data-theme="dark"] .accounting-light .accounting-hero-panel h2,
+[data-theme="dark"] .accounting-light .accounting-module-card strong,
+[data-theme="dark"] .accounting-light .ledger-summary strong,
+[data-theme="dark"] .accounting-light .closure-checktext strong,
+[data-theme="dark"] .accounting-light .closure-meta strong,
+[data-theme="dark"] .accounting-light .form-section-title {
+  color: #e4f3e8;
+}
+
+[data-theme="dark"] .accounting-light .accounting-hero-panel {
+  background: linear-gradient(135deg, #1c3726 0%, #17251d 100%);
+}
+
+[data-theme="dark"] .accounting-light .accounting-tabs button,
+[data-theme="dark"] .accounting-light .accounting-module-card p,
+[data-theme="dark"] .accounting-light .accounting-header p,
+[data-theme="dark"] .accounting-light .panel-description,
+[data-theme="dark"] .accounting-light .accounting-field,
+[data-theme="dark"] .accounting-light .form-field,
+[data-theme="dark"] .accounting-light .ledger-summary span,
+[data-theme="dark"] .accounting-light .closure-checktext small,
+[data-theme="dark"] .accounting-light .closure-meta span,
+[data-theme="dark"] .accounting-light .module-arrow {
+  color: #a8c9b1;
+}
+
+[data-theme="dark"] .accounting-light .accounting-period,
+[data-theme="dark"] .accounting-light .toolbar select,
+[data-theme="dark"] .accounting-light .search-field input,
+[data-theme="dark"] .accounting-light .accounting-form input,
+[data-theme="dark"] .accounting-light .accounting-form select,
+[data-theme="dark"] .accounting-light .accounting-card input,
+[data-theme="dark"] .accounting-light .accounting-card textarea,
+[data-theme="dark"] .accounting-light .balance-prep-panel .form-field input,
+[data-theme="dark"] .accounting-light .balance-prep-panel .form-field select {
+  background: #132019;
+  border-color: #365542;
+  color: #e4eee8;
+}
+
+[data-theme="dark"] .accounting-light .accounting-period option,
+[data-theme="dark"] .accounting-light .toolbar select option,
+[data-theme="dark"] .accounting-light .accounting-form select option {
+  background: #132019;
+  color: #e4eee8;
+}
+
+[data-theme="dark"] .accounting-light .data-table th,
+[data-theme="dark"] .accounting-light .reference-table thead th,
+[data-theme="dark"] .accounting-light .entry-table th {
+  background: #1b2d23;
+  color: #b8d8c0;
+  border-color: #365542;
+}
+
+[data-theme="dark"] .accounting-light .data-table td,
+[data-theme="dark"] .accounting-light .accounting-table td,
+[data-theme="dark"] .accounting-light .entry-table input {
+  background: #17251d;
+  color: #d0e3d5;
+  border-color: #294435;
+}
+
+[data-theme="dark"] .accounting-light .data-table tbody tr:hover,
+[data-theme="dark"] .accounting-light .reference-table tbody tr:hover,
+[data-theme="dark"] .accounting-light .accounting-table tbody tr:hover {
+  background: #203b2c;
+}
+
+[data-theme="dark"] .accounting-light .closure-panel .closure-checkbox {
+  background: #132019;
+  border-color: #527b60;
+}
+
+[data-theme="dark"] .accounting-light .accounting-notice,
+[data-theme="dark"] .accounting-light .info-strip,
+[data-theme="dark"] .accounting-light .policy-note {
+  background: #1c3726;
+  border-color: #386148;
+  color: #b8d8c0;
+}
+
+[data-theme="dark"] .pdf-modal,
+[data-theme="dark"] .success-dialog,
+[data-theme="dark"] .crop-modal,
+[data-theme="dark"] .export-dialog,
+[data-theme="dark"] .profile-menu,
+[data-theme="dark"] .search-results,
+[data-theme="dark"] .tool-popover {
+  background: #17251d;
+  color: #e4eee8;
+  border-color: #365542;
+}
+
+[data-theme="dark"] .pdf-viewer {
+  background: #132019;
+  border-color: #365542;
 }
